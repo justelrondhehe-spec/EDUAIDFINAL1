@@ -42,7 +42,7 @@ export const lessonsData: Lesson[] = [
         'Understand shape properties',
         'Create art with shapes and colors'
       ],
-      activities: ['Shape Hunt', 'Color Mixing', 'Pattern Creation', 'Art Project']
+      activities: ['Shape Hunt', 'Color Mixing']
     }
   },
 ];
