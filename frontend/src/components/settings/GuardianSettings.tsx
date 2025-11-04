@@ -4,14 +4,35 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Card } from '../ui/card';
+import { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
+
+interface Guardian {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  relationship: string;
+  primary: boolean;
+}
 
 interface GuardianSettingsProps {
   onBack: () => void;
 }
 
 export function GuardianSettings({ onBack }: GuardianSettingsProps) {
-  const guardians = [
+  const [guardians, setGuardians] = useState<Guardian[]>([
     {
+      id: 1,
       name: 'Maria Mendoza',
       email: 'maria.mendoza@email.com',
       phone: '+1 (555) 123-4567',
@@ -19,13 +40,23 @@ export function GuardianSettings({ onBack }: GuardianSettingsProps) {
       primary: true,
     },
     {
+      id: 2,
       name: 'Carlos Mendoza',
       email: 'carlos.mendoza@email.com',
       phone: '+1 (555) 123-4568',
       relationship: 'Father',
       primary: false,
     },
-  ];
+  ]);
+
+  const [guardianToDelete, setGuardianToDelete] = useState<Guardian | null>(null);
+
+  const handleDeleteGuardian = () => {
+    if (guardianToDelete) {
+      setGuardians(prev => prev.filter(g => g.id !== guardianToDelete.id));
+      setGuardianToDelete(null);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -192,6 +223,34 @@ export function GuardianSettings({ onBack }: GuardianSettingsProps) {
           </Button>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={guardianToDelete !== null} onOpenChange={(open) => !open && setGuardianToDelete(null)}>
+        <AlertDialogContent className="dark:bg-slate-800 dark:border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="dark:text-slate-100">Delete Guardian</AlertDialogTitle>
+            <AlertDialogDescription className="dark:text-slate-400">
+              Are you sure you want to remove {guardianToDelete?.name} as a guardian? This action cannot be undone.
+              {guardianToDelete?.primary && (
+                <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg">
+                  <p className="text-yellow-800 dark:text-yellow-400 text-sm">
+                    ⚠️ This is the primary guardian. Make sure to assign another guardian as primary before removing.
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteGuardian}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

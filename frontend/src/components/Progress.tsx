@@ -26,9 +26,9 @@ export function Progress() {
       color: 'from-blue-500 to-blue-600',
     },
     {
-      title: 'Speed Reader',
-      description: 'Complete 5 reading lessons in one week',
-      icon: '📚',
+      title: 'Creative Mind',
+      description: 'Complete 5 creative activities',
+      icon: '🎨',
       earned: true,
       date: '1 week ago',
       color: 'from-purple-500 to-purple-600',
@@ -79,9 +79,9 @@ export function Progress() {
   ];
 
   const recentActivities = [
-    { title: 'Completed "Rhyming Words"', time: '2 hours ago', icon: '✅', color: 'text-emerald-500' },
-    { title: 'Started "Counting to 50"', time: '5 hours ago', icon: '▶️', color: 'text-blue-500' },
-    { title: 'Earned "Speed Reader" badge', time: '1 day ago', icon: '🏆', color: 'text-yellow-500' },
+    { title: 'Completed "Color Recognition Quiz"', time: '2 hours ago', icon: '✅', color: 'text-emerald-500' },
+    { title: 'Started "Shapes & Colors"', time: '5 hours ago', icon: '▶️', color: 'text-blue-500' },
+    { title: 'Earned "Math Wizard" badge', time: '1 day ago', icon: '🏆', color: 'text-yellow-500' },
     { title: 'Completed "Story Writing"', time: '2 days ago', icon: '✅', color: 'text-emerald-500' },
   ];
 
