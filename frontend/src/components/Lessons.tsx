@@ -1,4 +1,4 @@
-import { BookOpen, Clock, Star, Award, Play, Lock, Check, Search, Filter, X } from 'lucide-react';
+import { Clock, Star, Lock, Check, Search, Filter, X, Play } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Progress } from './ui/progress';
@@ -61,16 +61,6 @@ export function Lessons() {
     { name: 'Completed', count: counts.completed, filter: 'completed' as const },
     { name: 'Not Started', count: counts['not-started'], filter: 'not-started' as const },
   ];
-
-  const featuredLesson = {
-    title: 'Story Time: The Brave Little Bear',
-    description: 'Join our interactive story session where you\'ll learn new words, practice reading comprehension, and explore emotions through an exciting adventure!',
-    duration: '45 min',
-    level: 'Intermediate',
-    participants: 127,
-    nextSession: 'Tomorrow at 10:00 AM',
-    icon: '🐻',
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -203,47 +193,6 @@ export function Lessons() {
           </div>
         </div>
       )}
-
-      {/* Featured Lesson */}
-      <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
-        <div className="relative z-10">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm mb-3">
-                ✨ Featured Lesson
-              </div>
-              <h2 className="text-white mb-2">{featuredLesson.title}</h2>
-              <p className="text-white/90 mb-4 max-w-2xl">{featuredLesson.description}</p>
-              <div className="flex items-center gap-6 text-sm mb-6">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>{featuredLesson.duration}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4" />
-                  <span>{featuredLesson.level}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  <span>{featuredLesson.participants} students enrolled</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-6xl">{featuredLesson.icon}</div>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button className="bg-white text-indigo-600 hover:bg-white/90">
-              <Play className="w-4 h-4 mr-2" />
-              Start Learning
-            </Button>
-            <div className="text-sm text-white/80">
-              Next session: {featuredLesson.nextSession}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Categories */}
       <div className="flex gap-3 overflow-x-auto pb-2">

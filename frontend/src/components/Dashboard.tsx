@@ -44,8 +44,8 @@ export function Dashboard() {
   // Quick stats for overview cards
   const quickStats = [
     {
-      label: 'Lessons Completed',
-      value: lessonsData.filter(l => l.status === 'completed').length,
+      label: 'Lessons Available',
+      value: lessonsData.length,
       total: lessonsData.length,
       icon: BookOpen,
       color: 'from-blue-500 to-blue-600',
