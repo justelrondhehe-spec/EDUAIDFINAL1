@@ -15,6 +15,7 @@ import { GuardianSettings } from './components/settings/GuardianSettings';
 import { LanguageRegion } from './components/settings/LanguageRegion';
 import { PrivacySecurity } from './components/settings/PrivacySecurity';
 import { HelpPage } from './components/HelpPage';
+import { ShapesColorsLesson } from './components/ShapesColorsLesson';
 
 export type Page = 
   | 'dashboard' 
@@ -32,7 +33,8 @@ export type Page =
   | 'help-getting-started'
   | 'help-video-tutorials'
   | 'help-user-guide'
-  | 'help-faqs';
+  | 'help-faqs'
+  | 'lesson-shapes-colors';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -42,7 +44,7 @@ export default function App() {
       case 'dashboard':
         return <Dashboard />;
       case 'lessons':
-        return <Lessons />;
+        return <Lessons onNavigate={setCurrentPage} />;
       case 'activities':
         return <Activities />;
       case 'progress':
@@ -67,6 +69,8 @@ export default function App() {
       case 'help-user-guide':
       case 'help-faqs':
         return <HelpPage currentSection={currentPage} onNavigate={setCurrentPage} />;
+      case 'lesson-shapes-colors':
+        return <ShapesColorsLesson onBack={() => setCurrentPage('lessons')} />;
       default:
         return (
           <div className="flex items-center justify-center h-full">

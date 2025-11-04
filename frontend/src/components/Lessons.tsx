@@ -6,8 +6,13 @@ import { Badge } from './ui/badge';
 import { lessonsData, Lesson } from '../data/lessonsData';
 import { useState } from 'react';
 import { LessonDetailModal } from './modals/LessonDetailModal';
+import { Page } from '../App';
 
-export function Lessons() {
+interface LessonsProps {
+  onNavigate: (page: Page) => void;
+}
+
+export function Lessons({ onNavigate }: LessonsProps) {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'in-progress' | 'completed' | 'not-started'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -326,7 +331,10 @@ export function Lessons() {
           lesson={selectedLesson}
           onClose={() => setSelectedLesson(null)}
           onStart={() => {
-            alert(`Starting lesson: ${selectedLesson.title}`);
+            // Navigate to the lesson content page for Shapes & Colors
+            if (selectedLesson.id === 4) {
+              onNavigate('lesson-shapes-colors');
+            }
             setSelectedLesson(null);
           }}
         />
