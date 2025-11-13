@@ -1,17 +1,66 @@
-import { Calendar, Clock, CheckCircle, AlertCircle, Circle, Filter, Search, X } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertCircle, Circle, Filter, Search, X, Lock } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { activitiesData, Activity } from '../data/activitiesData';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ActivityDetailModal } from './modals/ActivityDetailModal';
+import { useApp } from '../contexts/AppContext';
+import { Page } from '../App';
 
-export function Activities() {
+interface ActivitiesProps {
+  onNavigate?: (page: Page) => void;
+}
+
+export function Activities({ onNavigate }: ActivitiesProps = {}) {
+  const { lessonProgress, activityScores } = useApp();
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'completed' | 'in-progress' | 'pending'>('all');
+
+  // Process all activities including locked ones
+  const allActivities = useMemo(() => {
+    return activitiesData.map(activity => {
+      const activityScore = activityScores[activity.id];
+      const relatedLesson = activity.relatedLessonId !== undefined ? lessonProgress[activity.relatedLessonId] : null;
+      
+      // Check if activity is locked
+      const isLocked = activity.relatedLessonId !== undefined && !relatedLesson?.completed;
+      
+      let status: 'pending' | 'in-progress' | 'completed' = 'pending';
+      let grade = activity.grade;
+      let score = activity.score;
+      let dueDate: Date | null = null;
+      
+      if (activityScore) {
+        if (activityScore.completed) {
+          status = 'completed';
+          const percentScore = Math.round((activityScore.score / activityScore.maxScore) * 100);
+          score = percentScore;
+          grade = percentScore >= 95 ? 'A+' : percentScore >= 90 ? 'A' : percentScore >= 85 ? 'B+' : percentScore >= 80 ? 'B' : percentScore >= 70 ? 'C' : 'D';
+        }
+        dueDate = activityScore.dueDate;
+      } else if (relatedLesson?.completed && !isLocked) {
+        // Set due date to 1 day after lesson completion
+        dueDate = new Date(relatedLesson.completedDate!);
+        dueDate.setDate(dueDate.getDate() + 1);
+      }
+      
+      return {
+        ...activity,
+        status,
+        grade,
+        score,
+        dueDate,
+        isLocked,
+      };
+    });
+  }, [lessonProgress, activityScores]);
+
+  // Filter activities - show all including locked
+  const availableActivities = allActivities;
 
   // Filter activities based on search and filters
   const filterActivities = (activities: Activity[]) => {
@@ -26,22 +75,21 @@ export function Activities() {
   };
 
   const pendingActivities = filterActivities(
-    activitiesData.filter(a => a.status === 'pending' || a.status === 'in-progress')
+    availableActivities.filter(a => a.status === 'pending' || a.status === 'in-progress')
   );
   
-  const completedActivities = filterActivities(
-    activitiesData.filter(a => a.status === 'completed')
+  const completedActivitiesList = filterActivities(
+    availableActivities.filter(a => a.status === 'completed')
   );
 
-  const allActivities = activitiesData;
-  const completedCount = activitiesData.filter(a => a.status === 'completed').length;
-  const inProgressCount = activitiesData.filter(a => a.status === 'in-progress').length;
-  const pendingCount = activitiesData.filter(a => a.status === 'pending').length;
+  const completedCount = availableActivities.filter(a => a.status === 'completed').length;
+  const inProgressCount = availableActivities.filter(a => a.status === 'in-progress').length;
+  const pendingCount = availableActivities.filter(a => a.status === 'pending').length;
 
   const stats = [
     { 
       label: 'Total Activities', 
-      value: allActivities.length.toString(), 
+      value: availableActivities.length.toString(), 
       icon: 'all' as const,
       color: 'from-blue-500 to-blue-600',
       filter: 'all' as const,
@@ -112,7 +160,7 @@ export function Activities() {
   };
 
   const displayPendingActivities = getFilteredActivities(pendingActivities);
-  const displayCompletedActivities = getFilteredActivities(completedActivities);
+  const displayCompletedActivities = getFilteredActivities(completedActivitiesList);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -187,11 +235,23 @@ export function Activities() {
       <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as 'pending' | 'completed')} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="pending">Pending ({pendingActivities.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completedActivities.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed ({completedActivitiesList.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="mt-6 space-y-4">
-          {displayPendingActivities.length === 0 ? (
+          {availableActivities.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="flex justify-center mb-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                  <Lock className="w-10 h-10 text-white" />
+                </div>
+              </div>
+              <div className="text-slate-800 dark:text-slate-200 mb-2">No Activities Available Yet</div>
+              <div className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                Complete lessons to unlock related activities! Start with the <span className="text-pink-600 dark:text-pink-400">Shapes & Colors</span> lesson to unlock your first activity.
+              </div>
+            </div>
+          ) : displayPendingActivities.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-slate-400 dark:text-slate-500 mb-2">No pending activities found</div>
               <div className="text-slate-600 dark:text-slate-400">Try adjusting your search or filters</div>
@@ -200,13 +260,18 @@ export function Activities() {
             displayPendingActivities.map((activity) => (
               <div
                 key={activity.id}
-                onClick={() => setSelectedActivity(activity)}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all cursor-pointer"
+                onClick={() => !activity.isLocked && setSelectedActivity(activity)}
+                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-all ${activity.isLocked ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl cursor-pointer'}`}
               >
                 <div className="p-6">
                   <div className="flex items-start gap-6">
                     {/* Icon */}
-                    <div className={`w-16 h-16 bg-gradient-to-br ${activity.color} rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0`}>
+                    <div className={`w-16 h-16 bg-gradient-to-br ${activity.color} rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}>
+                      {activity.isLocked && (
+                        <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
+                          <Lock className="w-8 h-8 text-white" />
+                        </div>
+                      )}
                       {activity.icon}
                     </div>
 
@@ -256,10 +321,22 @@ export function Activities() {
                       {/* Footer */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                            <Calendar className="w-4 h-4" />
-                            <span>Due: {activity.dueDate}</span>
-                          </div>
+                          {activity.isLocked ? (
+                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                              <Lock className="w-4 h-4" />
+                              <span>Complete lesson to unlock</span>
+                            </div>
+                          ) : activity.dueDate ? (
+                            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                              <Calendar className="w-4 h-4" />
+                              <span>Due: {new Date(activity.dueDate).toLocaleDateString()}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                              <Calendar className="w-4 h-4" />
+                              <span>No due date</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                             <span className="text-yellow-500">⭐</span>
                             <span>{activity.points} points</span>
@@ -267,12 +344,19 @@ export function Activities() {
                         </div>
                         <Button 
                           className={`bg-gradient-to-r ${activity.color}`}
+                          disabled={activity.isLocked}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedActivity(activity);
+                            if (activity.isLocked) return;
+                            // Navigate to the activity game if it's the Shapes & Colors Challenge
+                            if (activity.id === 1 && onNavigate) {
+                              onNavigate('activity-shape-color-sorter');
+                            } else {
+                              setSelectedActivity(activity);
+                            }
                           }}
                         >
-                          {activity.status === 'in-progress' ? 'Continue' : 'Start Activity'}
+                          {activity.isLocked ? 'Locked' : activity.status === 'in-progress' ? 'Continue' : 'Start Activity'}
                         </Button>
                       </div>
                     </div>
@@ -363,7 +447,12 @@ export function Activities() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedActivity(activity);
+                              // Navigate to the activity game if it's the Shapes & Colors Challenge
+                              if (activity.id === 1 && onNavigate) {
+                                onNavigate('activity-shape-color-sorter');
+                              } else {
+                                setSelectedActivity(activity);
+                              }
                             }}
                           >
                             Retake
@@ -385,7 +474,12 @@ export function Activities() {
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
           onStart={() => {
-            alert(`Starting activity: ${selectedActivity.title}`);
+            // Navigate to the activity game if it's the Shapes & Colors Challenge
+            if (selectedActivity.id === 1 && onNavigate) {
+              onNavigate('activity-shape-color-sorter');
+            } else {
+              alert(`Starting activity: ${selectedActivity.title}`);
+            }
             setSelectedActivity(null);
           }}
         />

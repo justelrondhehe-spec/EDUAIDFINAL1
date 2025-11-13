@@ -1,6 +1,8 @@
 import { X, User, Settings, HelpCircle, LogOut } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Page } from '../../App';
+import { useApp } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ProfileMenuProps {
   onClose: () => void;
@@ -8,8 +10,16 @@ interface ProfileMenuProps {
 }
 
 export function ProfileMenu({ onClose, onNavigate }: ProfileMenuProps) {
+  const { totalPoints, completedActivities, completedLessons, achievementsEarned } = useApp();
+  const { logout } = useAuth();
+  
   const handleNavigation = (page: Page) => {
     onNavigate(page);
+    onClose();
+  };
+
+  const handleLogout = () => {
+    logout();
     onClose();
   };
 
@@ -36,15 +46,15 @@ export function ProfileMenu({ onClose, onNavigate }: ProfileMenuProps) {
         <div className="p-4 border-b border-slate-200 dark:border-slate-700">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">156</div>
+              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">{totalPoints}</div>
               <div className="text-xs text-slate-600 dark:text-slate-400">Points</div>
             </div>
             <div>
-              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">27</div>
+              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">{completedActivities.length + completedLessons.length}</div>
               <div className="text-xs text-slate-600 dark:text-slate-400">Completed</div>
             </div>
             <div>
-              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">12</div>
+              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">{achievementsEarned}</div>
               <div className="text-xs text-slate-600 dark:text-slate-400">Badges</div>
             </div>
           </div>
@@ -79,6 +89,7 @@ export function ProfileMenu({ onClose, onNavigate }: ProfileMenuProps) {
         <div className="p-4 border-t border-slate-200 dark:border-slate-700">
           <Button
             variant="ghost"
+            onClick={handleLogout}
             className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
           >
             <LogOut className="w-5 h-5 mr-3" />

@@ -1,31 +1,50 @@
-import { Calendar, Users, TrendingUp, Target, BookOpen } from 'lucide-react';
-import { Button } from './ui/button';
+import { Calendar, TrendingUp, Target, BookOpen } from 'lucide-react';
 import { Progress } from './ui/progress';
 import { activitiesData } from '../data/activitiesData';
 import { lessonsData } from '../data/lessonsData';
 import { useApp } from '../contexts/AppContext';
 
-export function Dashboard() {
-  const { setShowInviteModal } = useApp();
+interface DashboardProps {
+  onNavigate?: (page: string) => void;
+}
 
-  // Get activities matching the dashboard view
-  const dashboardActivities = activitiesData.filter(a => 
-    a.id === 7 || a.id === 8 || a.id === 9
-  );
+export function Dashboard({ onNavigate }: DashboardProps = {}) {
+  const { lessonProgress, activityScores } = useApp();
 
-  const completedTasks = activitiesData.filter(a => 
+  // Update activities with completion status
+  const activitiesWithStatus = activitiesData
+    .filter(activity => {
+      // If activity has a related lesson, only show it if lesson is completed
+      if (activity.relatedLessonId !== undefined) {
+        const relatedLesson = lessonProgress[activity.relatedLessonId];
+        return relatedLesson?.completed || false;
+      }
+      return true;
+    })
+    .map(activity => ({
+      ...activity,
+      status: activityScores[activity.id]?.completed ? 'completed' as const : activity.status,
+    }));
+
+  // Filter activities with upcoming due dates (not completed)
+  const upcomingActivities = activitiesWithStatus.filter(a => 
+    a.status !== 'completed' && a.dueTimestamp && a.dueTimestamp > Date.now()
+  ).slice(0, 3);
+
+  const completedTasks = activitiesWithStatus.filter(a => 
     a.status === 'completed'
   ).slice(0, 2);
 
   // Calculate actual progress
-  const completedCount = activitiesData.filter(a => a.status === 'completed').length;
-  const inProgressCount = activitiesData.filter(a => a.status === 'in-progress').length;
-  const notStartedCount = activitiesData.filter(a => a.status === 'pending').length;
-  const totalCount = activitiesData.length;
+  const completedCount = activitiesWithStatus.filter(a => a.status === 'completed').length;
+  const inProgressCount = activitiesWithStatus.filter(a => a.status === 'in-progress').length;
+  const notStartedCount = activitiesWithStatus.filter(a => a.status === 'pending').length;
+  const totalCount = activitiesWithStatus.length;
 
-  const completedPercentage = Math.round((completedCount / totalCount) * 100);
-  const inProgressPercentage = Math.round((inProgressCount / totalCount) * 100);
-  const notStartedPercentage = Math.round((notStartedCount / totalCount) * 100);
+  // Handle division by zero to prevent NaN
+  const completedPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const inProgressPercentage = totalCount > 0 ? Math.round((inProgressCount / totalCount) * 100) : 0;
+  const notStartedPercentage = totalCount > 0 ? Math.round((notStartedCount / totalCount) * 100) : 0;
 
   const progressStats = [
     { label: 'Completed', percentage: completedPercentage, color: 'text-emerald-500', bgColor: 'bg-emerald-500' },
@@ -33,15 +52,9 @@ export function Dashboard() {
     { label: 'Not Started', percentage: notStartedPercentage, color: 'text-red-500', bgColor: 'bg-red-500' },
   ];
 
-  const avatars = [
-    { initial: 'JD', color: 'from-pink-500 to-rose-500' },
-    { initial: 'SM', color: 'from-blue-500 to-indigo-500' },
-    { initial: 'KL', color: 'from-purple-500 to-pink-500' },
-    { initial: 'RT', color: 'from-cyan-500 to-blue-500' },
-    { initial: '+5', color: 'from-slate-600 to-slate-800' },
-  ];
-
   // Quick stats for overview cards
+  const activitiesDue = activitiesWithStatus.filter(a => a.status !== 'completed').length;
+  
   const quickStats = [
     {
       label: 'Lessons Available',
@@ -49,16 +62,17 @@ export function Dashboard() {
       total: lessonsData.length,
       icon: BookOpen,
       color: 'from-blue-500 to-blue-600',
+      progress: Object.values(lessonProgress).filter(l => l.completed).length,
     },
     {
       label: 'Activities Due',
-      value: activitiesData.filter(a => a.status !== 'completed').length,
+      value: activitiesDue,
       icon: Target,
       color: 'from-purple-500 to-purple-600',
     },
     {
-      label: 'Learning Streak',
-      value: '12 days',
+      label: 'Total Activities',
+      value: activitiesWithStatus.length,
       icon: TrendingUp,
       color: 'from-emerald-500 to-emerald-600',
     },
@@ -67,33 +81,11 @@ export function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-slate-800 dark:text-slate-100 mb-2">
-            Welcome back, Daniel 👋
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">Here's what's happening with your learning today</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Avatars */}
-          <div className="flex -space-x-2">
-            {avatars.map((avatar, index) => (
-              <div
-                key={index}
-                className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatar.color} border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-sm shadow-lg`}
-              >
-                {avatar.initial}
-              </div>
-            ))}
-          </div>
-          <Button 
-            onClick={() => setShowInviteModal(true)}
-            className="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600"
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Invite
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-slate-800 dark:text-slate-100 mb-2">
+          Welcome back, Daniel 👋
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400">Here's what's happening with your learning today</p>
       </div>
 
       {/* Quick Stats */}
@@ -112,7 +104,10 @@ export function Dashboard() {
               <div className="text-white/90">{stat.label}</div>
               {stat.total && (
                 <div className="mt-2">
-                  <Progress value={(Number(stat.value) / stat.total) * 100} className="h-2 bg-white/20" />
+                  <Progress value={((stat.progress || Number(stat.value)) / stat.total) * 100} className="h-2 bg-white/20" />
+                  <div className="text-xs text-white/70 mt-1">
+                    {stat.progress || 0} completed
+                  </div>
                 </div>
               )}
             </div>
@@ -131,53 +126,63 @@ export function Dashboard() {
                 <Calendar className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-slate-800 dark:text-slate-100">Activities</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">20 June • Today</p>
+                <h2 className="text-slate-800 dark:text-slate-100">Upcoming Activities</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  {upcomingActivities.length > 0 ? 'Click to view on Activities page' : 'No upcoming activities'}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Activity Cards */}
           <div className="space-y-4">
-            {dashboardActivities.map((activity, index) => (
-              <div
-                key={index}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-xl transition-all group"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`w-12 h-12 bg-gradient-to-br ${activity.color} rounded-xl flex items-center justify-center text-2xl shadow-lg`}>
-                        {activity.icon}
+            {upcomingActivities.length > 0 ? (
+              upcomingActivities.map((activity, index) => (
+                <div
+                  key={index}
+                  onClick={() => onNavigate?.('activities')}
+                  className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-xl transition-all group cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-12 h-12 bg-gradient-to-br ${activity.color} rounded-xl flex items-center justify-center text-2xl shadow-lg`}>
+                          {activity.icon}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-slate-800 dark:text-slate-100 mb-1">{activity.title}</h3>
+                          <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2">
+                            {activity.description}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-slate-800 dark:text-slate-100 mb-1">{activity.title}</h3>
-                        <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2">
-                          {activity.description}
-                        </p>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Priority: <span className="text-blue-500">{activity.priority}</span>
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Status: <span className={
+                            activity.status === 'completed' 
+                              ? 'text-emerald-500' 
+                              : activity.status === 'in-progress'
+                              ? 'text-blue-500'
+                              : 'text-red-500'
+                          }>{activity.status === 'in-progress' ? 'In Progress' : activity.status === 'completed' ? 'Completed' : 'Not Started'}</span>
+                        </span>
+                        <span className="text-slate-400 dark:text-slate-500">
+                          Due: {typeof activity.dueDate === 'string' ? activity.dueDate : activity.dueDate.toLocaleDateString()}
+                        </span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-slate-500 dark:text-slate-400">
-                        Priority: <span className="text-blue-500">{activity.priority}</span>
-                      </span>
-                      <span className="text-slate-500 dark:text-slate-400">
-                        Status: <span className={
-                          activity.status === 'completed' 
-                            ? 'text-emerald-500' 
-                            : activity.status === 'in-progress'
-                            ? 'text-blue-500'
-                            : 'text-red-500'
-                        }>{activity.status === 'in-progress' ? 'In Progress' : activity.status === 'completed' ? 'Completed' : 'Not Started'}</span>
-                      </span>
-                      <span className="text-slate-400 dark:text-slate-500">
-                        Created on: {activity.dueDate}
-                      </span>
                     </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center">
+                <div className="text-slate-400 dark:text-slate-500 mb-2">No upcoming activities</div>
+                <div className="text-slate-600 dark:text-slate-400 text-sm">Complete lessons to unlock new activities!</div>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -229,46 +234,50 @@ export function Dashboard() {
           </div>
 
           {/* Completed Tasks */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                <span className="text-emerald-600 dark:text-emerald-400 text-xs">✓</span>
+          {completedTasks.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <span className="text-emerald-600 dark:text-emerald-400 text-xs">✓</span>
+                </div>
+                <h3 className="text-slate-800 dark:text-slate-100">Completed Tasks</h3>
               </div>
-              <h3 className="text-slate-800 dark:text-slate-100">Completed Tasks</h3>
-            </div>
-            
-            <div className="space-y-3">
-              {completedTasks.map((task, index) => (
-                <div
-                  key={index}
-                  className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800/30"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="text-3xl">{task.icon}</div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
-                          <span className="text-white text-xs">✓</span>
+              
+              <div className="space-y-3">
+                {completedTasks.map((task, index) => (
+                  <div
+                    key={index}
+                    className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800/30"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="text-3xl">{task.icon}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                          <h4 className="text-slate-800 dark:text-slate-100">{task.title}</h4>
                         </div>
-                        <h4 className="text-slate-800 dark:text-slate-100">{task.title}</h4>
-                      </div>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm mb-2 line-clamp-2">
-                        {task.description}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="px-2 py-1 bg-emerald-500 text-white rounded">
-                          Completed
-                        </span>
-                        <span className="text-slate-500 dark:text-slate-400">
-                          {task.completedDate}
-                        </span>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm mb-2 line-clamp-2">
+                          {task.description}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="px-2 py-1 bg-emerald-500 text-white rounded">
+                            Completed
+                          </span>
+                          {task.completedDate && (
+                            <span className="text-slate-500 dark:text-slate-400">
+                              {task.completedDate}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -11,6 +11,8 @@ interface AccessibilitySettings {
 interface AccessibilityContextType {
   settings: AccessibilitySettings;
   updateSettings: (updates: Partial<AccessibilitySettings>) => void;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
 }
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined);
@@ -85,8 +87,17 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
     setSettings(prev => ({ ...prev, ...updates }));
   };
 
+  const toggleDarkMode = () => {
+    setSettings(prev => ({ ...prev, darkMode: !prev.darkMode }));
+  };
+
   return (
-    <AccessibilityContext.Provider value={{ settings, updateSettings }}>
+    <AccessibilityContext.Provider value={{ 
+      settings, 
+      updateSettings,
+      isDarkMode: settings.darkMode,
+      toggleDarkMode
+    }}>
       {children}
     </AccessibilityContext.Provider>
   );

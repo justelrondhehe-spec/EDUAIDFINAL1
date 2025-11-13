@@ -1,62 +1,77 @@
 import { User, Accessibility, Bell, Users, Globe, Shield, ChevronRight } from 'lucide-react';
 import { Page } from '../App';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SettingsGridProps {
   onNavigate: (page: Page) => void;
 }
 
 export function SettingsGrid({ onNavigate }: SettingsGridProps) {
-  const settings = [
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
+  const allSettings = [
     { 
       icon: User, 
       label: 'Profile Settings', 
       description: 'Manage your personal information',
       color: 'from-blue-500 to-blue-600',
-      page: 'profile-settings' as Page
+      page: 'profile-settings' as Page,
+      showForAdmin: true,
     },
     { 
       icon: Accessibility, 
       label: 'Accessibility Settings', 
       description: 'Customize your experience',
       color: 'from-purple-500 to-purple-600',
-      page: 'accessibility-settings' as Page
+      page: 'accessibility-settings' as Page,
+      showForAdmin: true,
     },
     { 
       icon: Bell, 
       label: 'Notification Settings', 
       description: 'Control your notifications',
       color: 'from-cyan-500 to-cyan-600',
-      page: 'notification-settings' as Page
+      page: 'notification-settings' as Page,
+      showForAdmin: true,
     },
     { 
       icon: Users, 
       label: 'Guardian Settings', 
       description: 'Manage guardian access',
       color: 'from-indigo-500 to-indigo-600',
-      page: 'guardian-settings' as Page
+      page: 'guardian-settings' as Page,
+      showForAdmin: false, // Hide for admin
     },
     { 
       icon: Globe, 
       label: 'Language & Region', 
       description: 'Set your preferences',
       color: 'from-emerald-500 to-emerald-600',
-      page: 'language-region' as Page
+      page: 'language-region' as Page,
+      showForAdmin: true,
     },
     { 
       icon: Shield, 
       label: 'Privacy & Security', 
       description: 'Protect your account',
       color: 'from-rose-500 to-rose-600',
-      page: 'privacy-security' as Page
+      page: 'privacy-security' as Page,
+      showForAdmin: true,
     },
   ];
+
+  // Filter settings based on user role
+  const settings = isAdmin 
+    ? allSettings.filter(setting => setting.showForAdmin)
+    : allSettings;
 
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-slate-800 mb-2">Settings</h1>
-        <p className="text-slate-600">Manage your account settings and preferences</p>
+        <h1 className="text-slate-800 dark:text-slate-100 mb-2">Settings</h1>
+        <p className="text-slate-600 dark:text-slate-400">Manage your account settings and preferences</p>
       </div>
 
       {/* Settings Grid */}

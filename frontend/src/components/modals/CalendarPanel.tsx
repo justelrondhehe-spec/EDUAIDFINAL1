@@ -16,6 +16,31 @@ export function CalendarPanel({ onClose }: CalendarPanelProps) {
     day: 'numeric' 
   });
 
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const eventDate = new Date(date);
+    eventDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = eventDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
+    if (diffDays < -1) return 'Overdue';
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  // Sort events by date
+  const sortedEvents = [...calendarEvents].sort((a, b) => a.date.getTime() - b.date.getTime());
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-end p-4" onClick={onClose}>
       <div 
@@ -38,14 +63,17 @@ export function CalendarPanel({ onClose }: CalendarPanelProps) {
 
         {/* Events List */}
         <div className="max-h-[500px] overflow-y-auto p-4">
-          {calendarEvents.length === 0 ? (
+          {sortedEvents.length === 0 ? (
             <div className="p-12 text-center">
               <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-500 dark:text-slate-400">No upcoming events</p>
+              <p className="text-slate-500 dark:text-slate-400">No upcoming deadlines</p>
+              <p className="text-slate-400 dark:text-slate-500 text-sm mt-2">
+                Complete lessons to unlock new activities
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {calendarEvents.map((event) => (
+              {sortedEvents.map((event) => (
                 <div
                   key={event.id}
                   className={`bg-gradient-to-br ${event.color} text-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-all cursor-pointer`}
@@ -59,11 +87,11 @@ export function CalendarPanel({ onClose }: CalendarPanelProps) {
                       <div className="flex items-center gap-4 text-sm text-white/90">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          <span>{event.date}</span>
+                          <span>{formatDate(event.date)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          <span>{event.time}</span>
+                          <span>{formatTime(event.date)}</span>
                         </div>
                       </div>
                       <div className="mt-2">
