@@ -1,9 +1,11 @@
-import { Search, Bell, Calendar } from 'lucide-react';
+import { Bell, Calendar } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { InviteModal } from './modals/InviteModal';
 import { NotificationsPanel } from './modals/NotificationsPanel';
 import { CalendarPanel } from './modals/CalendarPanel';
 import { ProfileMenu } from './modals/ProfileMenu';
+import { DatePanel } from './modals/DatePanel';
+import { SearchBar } from './SearchBar';
 import { Page } from '../App';
 import { useState } from 'react';
 
@@ -24,8 +26,7 @@ export function Header({ onNavigate }: HeaderProps) {
     setShowProfileMenu
   } = useApp();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showDatePanel, setShowDatePanel] = useState(false);
 
   const today = new Date();
   const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
@@ -33,37 +34,11 @@ export function Header({ onNavigate }: HeaderProps) {
   
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setShowSearchResults(true);
-      // In a real app, this would trigger a search
-      console.log('Searching for:', searchQuery);
-    }
-  };
-
   return (
     <>
       <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-700/60 px-8 py-4 flex items-center justify-between shadow-sm">
         {/* Search Bar */}
-        <div className="flex-1 max-w-xl">
-          <form onSubmit={handleSearch} className="relative">
-            <input
-              type="text"
-              placeholder="Search your task here..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setShowSearchResults(false)}
-              className="w-full pl-5 pr-14 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent transition-all text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-            />
-            <button 
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-600 dark:to-slate-800 text-white rounded-lg flex items-center justify-center hover:shadow-lg transition-all"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
+        <SearchBar onNavigate={onNavigate} />
 
         {/* Right Section */}
         <div className="flex items-center gap-3 ml-8">
@@ -85,7 +60,7 @@ export function Header({ onNavigate }: HeaderProps) {
             <Calendar className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setShowProfileMenu(true)}
+            onClick={() => setShowDatePanel(true)}
             className="text-right ml-3 px-4 py-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 rounded-xl border border-blue-100 dark:border-slate-600 hover:shadow-lg transition-all cursor-pointer"
           >
             <div className="text-slate-700 dark:text-slate-200">{dayName}</div>
@@ -99,6 +74,7 @@ export function Header({ onNavigate }: HeaderProps) {
       {showNotifications && <NotificationsPanel onClose={() => setShowNotifications(false)} />}
       {showCalendar && <CalendarPanel onClose={() => setShowCalendar(false)} />}
       {showProfileMenu && <ProfileMenu onClose={() => setShowProfileMenu(false)} onNavigate={onNavigate} />}
+      {showDatePanel && <DatePanel onClose={() => setShowDatePanel(false)} />}
     </>
   );
 }

@@ -1,16 +1,44 @@
-import { ArrowLeft, CheckCircle, Circle, Square, Triangle, Heart, Star, Pentagon, Hexagon, Diamond, Search, Sparkles, Palette } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Square, Triangle, Heart, Star, Pentagon, Hexagon, Diamond, Search, Sparkles, Palette, Trophy, Award } from 'lucide-react';
 import { Button } from './ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useApp } from '../contexts/AppContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 interface ShapesColorsLessonProps {
   onBack: () => void;
 }
 
 export function ShapesColorsLesson({ onBack }: ShapesColorsLessonProps) {
+  const { lessonProgress, completeLesson, startLesson, saveAndExitLesson } = useApp();
   const [foundShapes, setFoundShapes] = useState<string[]>([]);
   const [selectedColor1, setSelectedColor1] = useState<string | null>(null);
   const [selectedColor2, setSelectedColor2] = useState<string | null>(null);
   const [mixedColor, setMixedColor] = useState<string | null>(null);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  
+  const lessonId = 4; // Shapes & Colors lesson ID
+  const lesson = lessonProgress[lessonId];
+  const isLessonCompleted = lesson?.completed || false;
+  
+  // Start lesson when component mounts if not started
+  useEffect(() => {
+    if (!lesson && !isLessonCompleted) {
+      startLesson(lessonId);
+    }
+  }, []);
+  
+  const handleSaveAndExit = () => {
+    // Calculate progress based on completed sections
+    const progress = 33; // Can be made dynamic based on actual completion
+    saveAndExitLesson(lessonId, progress);
+    onBack();
+  };
 
   const shapes = [
     {
@@ -229,9 +257,9 @@ export function ShapesColorsLesson({ onBack }: ShapesColorsLessonProps) {
 
       {/* Lesson Title */}
       <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-3xl p-8 shadow-2xl">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 mb-6">
           <div className="text-6xl">🎨</div>
-          <div className="text-white">
+          <div className="flex-1 text-white">
             <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm mb-3">
               Visual Arts - Beginner
             </div>
@@ -239,6 +267,26 @@ export function ShapesColorsLesson({ onBack }: ShapesColorsLessonProps) {
             <p className="text-white/90">Discover the wonderful world of shapes and colors! Learn to identify, name, and create with different shapes and colors.</p>
           </div>
         </div>
+        
+        {/* Progress Bar */}
+        {lesson && !isLessonCompleted && (
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <div className="flex items-center justify-between text-sm text-white mb-2">
+              <span>Lesson Progress</span>
+              <span>{lesson.progressPercent}%</span>
+            </div>
+            <div className="w-full bg-white/20 rounded-full h-2">
+              <div
+                className="bg-white h-2 rounded-full transition-all duration-500"
+                style={{ width: `${lesson.progressPercent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-3 text-xs text-white/80">
+              <span>Started: {new Date(lesson.startedDate).toLocaleDateString()}</span>
+              <span>Expires: {new Date(lesson.expirationDate).toLocaleDateString()}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Part 1: The Shapes */}
@@ -523,19 +571,86 @@ export function ShapesColorsLesson({ onBack }: ShapesColorsLessonProps) {
         <div className="flex items-center gap-4 mb-4">
           <CheckCircle className="w-12 h-12 text-white" />
           <div className="text-white">
-            <h3 className="text-white mb-1">Great Job Learning!</h3>
-            <p className="text-white/90">You've completed the Shapes & Colors lesson. Keep practicing!</p>
+            <h3 className="text-white mb-1">Ready to Complete This Lesson?</h3>
+            <p className="text-white/90">You've reviewed all the content. Mark this lesson as complete to unlock activities!</p>
           </div>
         </div>
         <div className="flex gap-3">
-          <Button 
-            onClick={onBack}
-            className="bg-white text-emerald-600 hover:bg-emerald-50"
-          >
-            Back to Lessons
-          </Button>
+          {!isLessonCompleted ? (
+            <>
+              <Button 
+                onClick={() => {
+                  completeLesson(lessonId);
+                  setShowCompletionDialog(true);
+                }}
+                className="bg-white text-emerald-600 hover:bg-emerald-50"
+              >
+                <Trophy className="w-4 h-4 mr-2" />
+                Complete Lesson
+              </Button>
+              <Button 
+                onClick={handleSaveAndExit}
+                variant="outline"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              >
+                Save & Exit
+              </Button>
+            </>
+          ) : (
+            <Button 
+              onClick={onBack}
+              className="bg-white text-emerald-600 hover:bg-emerald-50"
+            >
+              Back to Lessons
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Completion Dialog */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center">
+              <Trophy className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Lesson Completed! 🎉</DialogTitle>
+            <DialogDescription className="text-center">
+              Congratulations! You've successfully completed the Shapes & Colors lesson.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-xl p-4">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Award className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-emerald-700 dark:text-emerald-300">+100 Points Earned</span>
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400 text-center">
+                The Shapes & Colors Challenge activity is now available in the Activities section!
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 mt-4">
+            <Button 
+              onClick={() => {
+                setShowCompletionDialog(false);
+                onBack();
+              }}
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
+            >
+              Back to Lessons
+            </Button>
+            <Button 
+              onClick={() => setShowCompletionDialog(false)}
+              variant="outline"
+            >
+              Continue Reviewing
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

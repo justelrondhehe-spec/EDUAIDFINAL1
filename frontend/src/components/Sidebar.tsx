@@ -1,5 +1,6 @@
 import { LayoutGrid, Lightbulb, CheckSquare, TrendingUp, Settings, HelpCircle, LogOut } from 'lucide-react';
 import { Page } from '../App';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   currentPage: Page;
@@ -7,6 +8,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
+  const { logout } = useAuth();
   const menuItems = [
     { icon: LayoutGrid, label: 'Dashboard', page: 'dashboard' as Page },
     { icon: Lightbulb, label: 'Lessons', page: 'lessons' as Page },
@@ -89,7 +91,10 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
 
       {/* Logout */}
       <div className="p-4 border-t border-slate-700/50 dark:border-slate-800/50">
-        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-red-500/20 hover:text-red-400 transition-all">
+        <button 
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-red-500/20 hover:text-red-400 transition-all"
+        >
           <LogOut className="w-5 h-5" />
           <span>Logout</span>
         </button>

@@ -4,15 +4,17 @@ import { Input } from './ui/input';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { lessonsData, Lesson } from '../data/lessonsData';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { LessonDetailModal } from './modals/LessonDetailModal';
 import { Page } from '../App';
+import { useApp } from '../contexts/AppContext';
 
 interface LessonsProps {
   onNavigate: (page: Page) => void;
 }
 
 export function Lessons({ onNavigate }: LessonsProps) {
+  const { lessonProgress } = useApp();
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'in-progress' | 'completed' | 'not-started'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -23,8 +25,38 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const categories = Array.from(new Set(lessonsData.map(l => l.category)));
   const difficulties = Array.from(new Set(lessonsData.map(l => l.difficulty)));
 
+  // Update lessons with completion status from context
+  const lessonsWithStatus = useMemo(() => {
+    return lessonsData.map(lesson => {
+      const progress = lessonProgress[lesson.id];
+      
+      let status: 'not-started' | 'in-progress' | 'completed' = 'not-started';
+      let progressPercent = 0;
+      let expirationDate: Date | null = null;
+      
+      if (progress) {
+        if (progress.completed) {
+          status = 'completed';
+          progressPercent = 100;
+        } else {
+          status = 'in-progress';
+          progressPercent = progress.progressPercent;
+        }
+        expirationDate = progress.expirationDate;
+      }
+      
+      return {
+        ...lesson,
+        status,
+        progress: progressPercent,
+        expirationDate,
+        completedLessons: progressPercent === 100 ? lesson.lessons : Math.floor((progressPercent / 100) * lesson.lessons),
+      };
+    });
+  }, [lessonProgress]);
+
   // Filter lessons based on selected filter, search, and advanced filters
-  const filteredLessons = lessonsData.filter(lesson => {
+  const filteredLessons = lessonsWithStatus.filter(lesson => {
     // Status filter
     if (selectedFilter === 'in-progress' && lesson.status !== 'in-progress') return false;
     if (selectedFilter === 'completed' && lesson.status !== 'completed') return false;
@@ -51,10 +83,10 @@ export function Lessons({ onNavigate }: LessonsProps) {
 
   const getCategoryCounts = () => {
     return {
-      all: lessonsData.length,
-      'in-progress': lessonsData.filter(l => l.status === 'in-progress').length,
-      completed: lessonsData.filter(l => l.status === 'completed').length,
-      'not-started': lessonsData.filter(l => l.status === 'not-started').length,
+      all: lessonsWithStatus.length,
+      'in-progress': lessonsWithStatus.filter(l => l.status === 'in-progress').length,
+      completed: lessonsWithStatus.filter(l => l.status === 'completed').length,
+      'not-started': lessonsWithStatus.filter(l => l.status === 'not-started').length,
     };
   };
 
