@@ -1,16 +1,15 @@
 import { Search, BookOpen, CheckSquare } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { lessonsData } from '../data/lessonsData';
-import { activitiesData } from '../data/activitiesData';
 import { Page } from '../App';
+import { useGlobalData } from '../contexts/GlobalDataContext';
 
 interface SearchBarProps {
   onNavigate: (page: Page) => void;
 }
 
 interface SearchResult {
-  id: number;
+  id: string | number;
   title: string;
   description: string;
   type: 'lesson' | 'activity';
@@ -19,6 +18,7 @@ interface SearchResult {
 }
 
 export function SearchBar({ onNavigate }: SearchBarProps) {
+  const { lessons, activities } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -26,27 +26,53 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Create searchable index
-  const searchIndex: SearchResult[] = [
-    // Add all lessons to the index
-    ...lessonsData.map(lesson => ({
-      id: lesson.id,
-      title: lesson.title,
-      description: lesson.description,
-      type: 'lesson' as const,
-      icon: lesson.icon,
-      page: lesson.id === 4 ? 'lesson-shapes-colors' as Page : 'lessons' as Page,
-    })),
-    // Add all activities to the index
-    ...activitiesData.map(activity => ({
-      id: activity.id,
-      title: activity.title,
-      description: activity.description,
-      type: 'activity' as const,
-      icon: activity.icon,
-      page: activity.id === 1 ? 'activity-shape-color-sorter' as Page : 'activities' as Page,
-    })),
-  ];
+  // Build search index from backend data
+  const searchIndex: SearchResult[] = useMemo(() => {
+    const lessonResults: SearchResult[] = (lessons ?? []).map((lesson: any) => {
+      const id = lesson._id ?? lesson.id;
+      const title: string = lesson.title ?? 'Untitled Lesson';
+      const desc: string = lesson.description ?? '';
+      const icon: string = lesson.icon ?? '📘';
+
+      // Use title to detect Shapes & Colors route (more robust than numeric id)
+      const isShapesColors =
+        typeof title === 'string' &&
+        title.toLowerCase().includes('shapes') &&
+        title.toLowerCase().includes('color');
+
+      return {
+        id,
+        title,
+        description: desc,
+        type: 'lesson',
+        icon,
+        page: isShapesColors ? ('lesson-shapes-colors' as Page) : ('lessons' as Page),
+      };
+    });
+
+    const activityResults: SearchResult[] = (activities ?? []).map((activity: any) => {
+      const id = activity._id ?? activity.id;
+      const title: string = activity.title ?? 'Untitled Activity';
+      const desc: string = activity.description ?? '';
+      const icon: string = activity.icon ?? '✅';
+
+      const isShapesChallenge =
+        typeof title === 'string' &&
+        title.toLowerCase().includes('shapes') &&
+        title.toLowerCase().includes('color');
+
+      return {
+        id,
+        title,
+        description: desc,
+        type: 'activity',
+        icon,
+        page: isShapesChallenge ? ('activity-shape-color-sorter' as Page) : ('activities' as Page),
+      };
+    });
+
+    return [...lessonResults, ...activityResults];
+  }, [lessons, activities]);
 
   // Update dropdown position
   const updateDropdownPosition = () => {
@@ -64,10 +90,12 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
       const query = searchQuery.toLowerCase();
-      const filtered = searchIndex.filter(item =>
-        item.title.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query)
-      );
+      const filtered = searchIndex.filter((item) => {
+        const title = item.title?.toLowerCase?.() ?? '';
+        const desc = item.description?.toLowerCase?.() ?? '';
+        return title.includes(query) || desc.includes(query);
+      });
+
       setSearchResults(filtered);
       setShowResults(true);
       updateDropdownPosition();
@@ -75,19 +103,20 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
       setSearchResults([]);
       setShowResults(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, searchIndex]);
 
   // Update position on scroll or resize
   useEffect(() => {
-    if (showResults) {
-      updateDropdownPosition();
-      window.addEventListener('scroll', updateDropdownPosition, true);
-      window.addEventListener('resize', updateDropdownPosition);
-      return () => {
-        window.removeEventListener('scroll', updateDropdownPosition, true);
-        window.removeEventListener('resize', updateDropdownPosition);
-      };
-    }
+    if (!showResults) return;
+
+    updateDropdownPosition();
+    window.addEventListener('scroll', updateDropdownPosition, true);
+    window.addEventListener('resize', updateDropdownPosition);
+
+    return () => {
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+      window.removeEventListener('resize', updateDropdownPosition);
+    };
   }, [showResults]);
 
   // Close dropdown when clicking outside
@@ -110,7 +139,6 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // If there's a result, navigate to the first one
     if (searchResults.length > 0) {
       handleResultClick(searchResults[0]);
     }
@@ -121,9 +149,9 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
 
     const dropdownContent = (
       <>
-        {/* Autocomplete Dropdown */}
+        {/* Results */}
         {searchResults.length > 0 && (
-          <div 
+          <div
             style={{
               position: 'fixed',
               top: `${dropdownPosition.top}px`,
@@ -143,11 +171,13 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
                   onClick={() => handleResultClick(result)}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
                 >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl ${
-                    result.type === 'lesson' 
-                      ? 'bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30' 
-                      : 'bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30'
-                  }`}>
+                  <div
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl ${
+                      result.type === 'lesson'
+                        ? 'bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30'
+                        : 'bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30'
+                    }`}
+                  >
                     {result.icon}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -165,11 +195,13 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
                       {result.description}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        result.type === 'lesson'
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                          : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                      }`}>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          result.type === 'lesson'
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                            : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                        }`}
+                      >
                         {result.type === 'lesson' ? 'Lesson' : 'Activity'}
                       </span>
                     </div>
@@ -180,9 +212,9 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
           </div>
         )}
 
-        {/* No Results */}
+        {/* No results */}
         {searchQuery.trim().length > 0 && searchResults.length === 0 && (
-          <div 
+          <div
             style={{
               position: 'fixed',
               top: `${dropdownPosition.top}px`,
@@ -198,7 +230,7 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
               </div>
               <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">No results found</div>
               <div className="text-xs text-slate-500 dark:text-slate-500">
-                Try searching for "Shapes", "Numbers", "Reading", or "Science"
+                Try searching for &quot;Shapes&quot;, &quot;Numbers&quot;, &quot;Reading&quot;, or &quot;Science&quot;
               </div>
             </div>
           </div>
@@ -227,7 +259,7 @@ export function SearchBar({ onNavigate }: SearchBarProps) {
             }}
             className="w-full pl-5 pr-14 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent transition-all text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
-          <button 
+          <button
             type="submit"
             className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-600 dark:to-slate-800 text-white rounded-lg flex items-center justify-center hover:shadow-lg transition-all"
           >

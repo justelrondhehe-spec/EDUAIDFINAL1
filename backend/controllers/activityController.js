@@ -1,37 +1,28 @@
-import Activity from "../models/Activity.js";
+// backend/controllers/activityController.js
+import Activity from '../models/Activity.js';
 
-export const getActivities = async (req, res) => {
+export async function listActivities(req, res) {
   try {
-    const activities = await Activity.find().sort({ createdAt: -1 });
-    res.json(activities);
+    const activities = await Activity.find().lean();
+    return res.json(activities);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('activityController.listActivities error', err);
+    return res.status(500).json({ message: 'Failed to fetch activities' });
   }
-};
+}
 
-export const addActivity = async (req, res) => {
+export async function createActivity(req, res) {
   try {
-    const newActivity = await Activity.create(req.body);
-    res.status(201).json(newActivity);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+    const payload = req.body;
+    // Optional: validate required fields minimally
+    if (!payload.title) {
+      return res.status(400).json({ message: 'title is required' });
+    }
 
-export const updateActivity = async (req, res) => {
-  try {
-    const updated = await Activity.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(updated);
+    const created = await Activity.create(payload);
+    return res.status(201).json(created);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('activityController.createActivity error', err);
+    return res.status(500).json({ message: 'Failed to create activity', error: err.message });
   }
-};
-
-export const deleteActivity = async (req, res) => {
-  try {
-    await Activity.findByIdAndDelete(req.params.id);
-    res.json({ message: "Activity deleted" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+}

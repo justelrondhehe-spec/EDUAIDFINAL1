@@ -1,102 +1,152 @@
-import { X, User, Settings, HelpCircle, LogOut } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Page } from '../../App';
-import { useApp } from '../../contexts/AppContext';
-import { useAuth } from '../../contexts/AuthContext';
+// frontend/src/components/modals/ProfileMenu.tsx
+import React, { useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { LogOut, User, Settings, ChevronRight } from "lucide-react";
 
-interface ProfileMenuProps {
+type Props = {
   onClose: () => void;
-  onNavigate: (page: Page) => void;
-}
+  onNavigate?: (page: string) => void;
+};
 
-export function ProfileMenu({ onClose, onNavigate }: ProfileMenuProps) {
-  const { totalPoints, completedActivities, completedLessons, achievementsEarned } = useApp();
-  const { logout } = useAuth();
-  
-  const handleNavigation = (page: Page) => {
-    onNavigate(page);
+export function ProfileMenu({ onClose, onNavigate }: Props) {
+  const { user, logout } = useAuth();
+
+  // create container synchronously so it exists on first render
+  const container = useMemo(() => document.createElement("div"), []);
+  const openedAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // attach to body
+    document.body.appendChild(container);
+
+    // record the open time so the opening click doesn't immediately close it
+    openedAtRef.current = Date.now();
+
+    return () => {
+      // remove container when unmounting
+      if (container.parentNode) container.parentNode.removeChild(container);
+      openedAtRef.current = null;
+    };
+  }, [container]);
+
+  useEffect(() => {
+    // ignore clicks that occur within a small time window after opening
+    const toleranceMs = 80;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+
+      // if it's still very soon after opening, ignore (prevents immediate close)
+      if (openedAtRef.current && Date.now() - openedAtRef.current < toleranceMs) {
+        return;
+      }
+
+      // if click is inside the container, ignore
+      if (container.contains(target)) return;
+
+      // otherwise, close
+      onClose();
+    };
+
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("click", onDocClick, true); // use capture to be reliable
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", onDocClick, true);
+    };
+  }, [container, onClose]);
+
+  const name = user?.name ?? "Guest User";
+  const email = user?.email ?? "";
+  const initials = (() => {
+    if (!user?.name) return "GU";
+    const parts = user.name.split(" ").filter(Boolean);
+    return parts.slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+  })();
+
+  const goToProfile = () => {
     onClose();
+    onNavigate?.("profile-settings");
+  };
+
+  const goToSettings = () => {
+    onClose();
+    onNavigate?.("settings");
   };
 
   const handleLogout = () => {
-    logout();
     onClose();
+    logout();
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-end p-4" onClick={onClose}>
-      <div 
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-80 border border-slate-200 dark:border-slate-700 mt-16 mr-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white shadow-lg">
-              <span className="text-xl">DM</span>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-slate-800 dark:text-slate-100">Daniel Mendoza</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">Grade 8 Student</p>
-            </div>
+  // small dropdown fixed to top-right of viewport
+  const menu = (
+    <div style={{ position: "fixed", top: 16, right: 16, zIndex: 9999 }} role="dialog" aria-modal="true">
+      <div className="w-72 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-4 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 text-white flex items-center justify-center font-semibold">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{name}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{email}</div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">{totalPoints}</div>
-              <div className="text-xs text-slate-600 dark:text-slate-400">Points</div>
+        <div className="flex flex-col p-2">
+          <button
+            onClick={goToProfile}
+            className="flex items-center justify-between gap-3 w-full px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition text-left"
+            type="button"
+          >
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+              <div>
+                <div className="text-sm text-slate-800 dark:text-slate-100">Profile settings</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Manage your profile</div>
+              </div>
             </div>
-            <div>
-              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">{completedActivities.length + completedLessons.length}</div>
-              <div className="text-xs text-slate-600 dark:text-slate-400">Completed</div>
-            </div>
-            <div>
-              <div className="text-2xl text-slate-800 dark:text-slate-100 mb-1">{achievementsEarned}</div>
-              <div className="text-xs text-slate-600 dark:text-slate-400">Badges</div>
-            </div>
-          </div>
-        </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
 
-        {/* Menu Items */}
-        <div className="p-2">
           <button
-            onClick={() => handleNavigation('profile-settings')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
+            onClick={goToSettings}
+            className="flex items-center justify-between gap-3 w-full px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition text-left mt-1"
+            type="button"
           >
-            <User className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            <span className="text-slate-700 dark:text-slate-300">Profile Settings</span>
+            <div className="flex items-center gap-3">
+              <Settings className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+              <div>
+                <div className="text-sm text-slate-800 dark:text-slate-100">Settings</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">App preferences</div>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
           </button>
-          <button
-            onClick={() => handleNavigation('settings')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
-          >
-            <Settings className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            <span className="text-slate-700 dark:text-slate-300">Settings</span>
-          </button>
-          <button
-            onClick={() => handleNavigation('help')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
-          >
-            <HelpCircle className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            <span className="text-slate-700 dark:text-slate-300">Help & Support</span>
-          </button>
-        </div>
 
-        {/* Logout */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-          <Button
-            variant="ghost"
+          <div className="border-t border-slate-100 dark:border-slate-700 my-2" />
+
+          <button
             onClick={handleLogout}
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition text-left text-red-600 dark:text-red-400"
+            type="button"
           >
-            <LogOut className="w-5 h-5 mr-3" />
-            Logout
-          </Button>
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm">Logout</span>
+          </button>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(menu, container);
 }
+
+export default ProfileMenu;

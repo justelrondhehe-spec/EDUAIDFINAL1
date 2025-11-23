@@ -1,106 +1,132 @@
-import { User, Accessibility, Bell, Users, Globe, Shield, ChevronRight } from 'lucide-react';
+// frontend/src/components/SettingsGrid.tsx
+import { ChevronRight, UserCircle2, Accessibility, Bell, Users, Globe2, Shield } from 'lucide-react';
 import { Page } from '../App';
-import { useAuth } from '../contexts/AuthContext';
 
 interface SettingsGridProps {
-  onNavigate: (page: Page) => void;
+  onNavigate?: (page: Page) => void;
 }
 
 export function SettingsGrid({ onNavigate }: SettingsGridProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-
-  const allSettings = [
-    { 
-      icon: User, 
-      label: 'Profile Settings', 
-      description: 'Manage your personal information',
-      color: 'from-blue-500 to-blue-600',
-      page: 'profile-settings' as Page,
-      showForAdmin: true,
-    },
-    { 
-      icon: Accessibility, 
-      label: 'Accessibility Settings', 
-      description: 'Customize your experience',
-      color: 'from-purple-500 to-purple-600',
-      page: 'accessibility-settings' as Page,
-      showForAdmin: true,
-    },
-    { 
-      icon: Bell, 
-      label: 'Notification Settings', 
-      description: 'Control your notifications',
-      color: 'from-cyan-500 to-cyan-600',
-      page: 'notification-settings' as Page,
-      showForAdmin: true,
-    },
-    { 
-      icon: Users, 
-      label: 'Guardian Settings', 
-      description: 'Manage guardian access',
-      color: 'from-indigo-500 to-indigo-600',
-      page: 'guardian-settings' as Page,
-      showForAdmin: false, // Hide for admin
-    },
-    { 
-      icon: Globe, 
-      label: 'Language & Region', 
-      description: 'Set your preferences',
-      color: 'from-emerald-500 to-emerald-600',
-      page: 'language-region' as Page,
-      showForAdmin: true,
-    },
-    { 
-      icon: Shield, 
-      label: 'Privacy & Security', 
-      description: 'Protect your account',
-      color: 'from-rose-500 to-rose-600',
-      page: 'privacy-security' as Page,
-      showForAdmin: true,
-    },
-  ];
-
-  // Filter settings based on user role
-  const settings = isAdmin 
-    ? allSettings.filter(setting => setting.showForAdmin)
-    : allSettings;
+  const go = (page: Page) => {
+    if (onNavigate) onNavigate(page);
+  };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="mb-10">
+      <div>
         <h1 className="text-slate-800 dark:text-slate-100 mb-2">Settings</h1>
-        <p className="text-slate-600 dark:text-slate-400">Manage your account settings and preferences</p>
+        <p className="text-slate-600 dark:text-slate-400">
+          Manage your account settings and preferences
+        </p>
       </div>
 
-      {/* Settings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {settings.map((setting, index) => {
-          const Icon = setting.icon;
-          return (
-            <button
-              key={index}
-              onClick={() => onNavigate(setting.page)}
-              className={`bg-gradient-to-br ${setting.color} text-white rounded-2xl p-6 flex flex-col hover:shadow-2xl hover:scale-105 transition-all duration-300 group relative overflow-hidden`}
-            >
-              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-300"></div>
-              <div className="relative z-10">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                    <Icon className="w-7 h-7" />
-                  </div>
-                  <ChevronRight className="w-6 h-6 opacity-70 group-hover:translate-x-1 transition-transform" />
-                </div>
-                <div className="text-left">
-                  <div className="mb-1">{setting.label}</div>
-                  <div className="text-white/80 text-sm">{setting.description}</div>
-                </div>
-              </div>
-            </button>
-          );
-        })}
+      {/* Grid of setting cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Profile Settings */}
+        <button
+          onClick={() => go('profile-settings')}
+          className="relative bg-gradient-to-br from-blue-500 to-indigo-600 text-left rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all focus:outline-none focus:ring-4 focus:ring-blue-300/60"
+        >
+          <div className="flex items-start justify-between mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <UserCircle2 className="w-6 h-6 text-white" />
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/80" />
+          </div>
+          <h2 className="text-white text-lg mb-2">Profile Settings</h2>
+          <p className="text-white/80 text-sm">
+            Manage your personal information
+          </p>
+        </button>
+
+        {/* Accessibility Settings */}
+        <button
+          onClick={() => go('accessibility-settings')}
+          className="relative bg-gradient-to-br from-purple-500 to-pink-500 text-left rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all focus:outline-none focus:ring-4 focus:ring-purple-300/60"
+        >
+          <div className="flex items-start justify-between mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Accessibility className="w-6 h-6 text-white" />
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/80" />
+          </div>
+          <h2 className="text-white text-lg mb-2">Accessibility Settings</h2>
+          <p className="text-white/80 text-sm">
+            Customize your experience
+          </p>
+        </button>
+
+        {/* Notification Settings */}
+        <button
+          onClick={() => go('notification-settings')}
+          className="relative bg-gradient-to-br from-cyan-500 to-sky-500 text-left rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all focus:outline-none focus:ring-4 focus:ring-cyan-300/60"
+        >
+          <div className="flex items-start justify-between mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Bell className="w-6 h-6 text-white" />
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/80" />
+          </div>
+          <h2 className="text-white text-lg mb-2">Notification Settings</h2>
+          <p className="text-white/80 text-sm">
+            Control your notifications
+          </p>
+        </button>
+
+        {/* Guardian Settings */}
+        <button
+          onClick={() => go('guardian-settings')}
+          className="relative bg-gradient-to-br from-indigo-500 to-violet-500 text-left rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all focus:outline-none focus:ring-4 focus:ring-indigo-300/60"
+        >
+          <div className="flex items-start justify-between mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/80" />
+          </div>
+          <h2 className="text-white text-lg mb-2">Guardian Settings</h2>
+          <p className="text-white/80 text-sm">
+            Manage guardian access
+          </p>
+        </button>
+
+        {/* Language & Region */}
+        <button
+          onClick={() => go('language-region')}
+          className="relative bg-gradient-to-br from-emerald-500 to-teal-500 text-left rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all focus:outline-none focus:ring-4 focus:ring-emerald-300/60"
+        >
+          <div className="flex items-start justify-between mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Globe2 className="w-6 h-6 text-white" />
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/80" />
+          </div>
+          <h2 className="text-white text-lg mb-2">Language &amp; Region</h2>
+          <p className="text-white/80 text-sm">
+            Set your preferences
+          </p>
+        </button>
+
+        {/* Privacy & Security */}
+        <button
+          onClick={() => go('privacy-security')}
+          className="relative bg-gradient-to-br from-rose-500 to-red-500 text-left rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all focus:outline-none focus:ring-4 focus:ring-rose-300/60"
+        >
+          <div className="flex items-start justify-between mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/80" />
+          </div>
+          <h2 className="text-white text-lg mb-2">Privacy &amp; Security</h2>
+          <p className="text-white/80 text-sm">
+            Protect your account
+          </p>
+        </button>
       </div>
     </div>
   );
 }
+
+export default SettingsGrid;

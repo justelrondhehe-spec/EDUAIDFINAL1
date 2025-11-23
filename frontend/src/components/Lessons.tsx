@@ -1,13 +1,14 @@
+// frontend/src/components/Lessons.tsx
 import { Clock, Star, Lock, Check, Search, Filter, X, Play } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
-import { lessonsData, Lesson } from '../data/lessonsData';
 import { useState, useMemo } from 'react';
 import { LessonDetailModal } from './modals/LessonDetailModal';
 import { Page } from '../App';
 import { useApp } from '../contexts/AppContext';
+import { useGlobalData } from '../contexts/GlobalDataContext';
 
 interface LessonsProps {
   onNavigate: (page: Page) => void;
@@ -15,66 +16,127 @@ interface LessonsProps {
 
 export function Lessons({ onNavigate }: LessonsProps) {
   const { lessonProgress } = useApp();
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'in-progress' | 'completed' | 'not-started'>('all');
+
+  // lessons come from backend (admin created) via GlobalDataContext
+  const { lessons: serverLessons } = useGlobalData();
+  const effectiveLessons =
+    Array.isArray(serverLessons) && serverLessons.length > 0 ? serverLessons : [];
+
+  const [selectedFilter, setSelectedFilter] = useState<
+    'all' | 'in-progress' | 'completed' | 'not-started'
+  >('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([]);
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
 
-  const categories = Array.from(new Set(lessonsData.map(l => l.category)));
-  const difficulties = Array.from(new Set(lessonsData.map(l => l.difficulty)));
+  // 🔹 Helper: map lesson IDs to content pages
+  const openContentPageForLesson = (lesson: any): boolean => {
+    switch (lesson.id) {
+      case 1:
+        onNavigate('lesson-numbers');
+        return true;
+      case 2:
+        onNavigate('lesson-reading-basics');
+        return true;
+      case 3:
+        onNavigate('lesson-science-exploration');
+        return true;
+      case 4:
+        onNavigate('lesson-shapes-colors');
+        return true;
+      case 5:
+        onNavigate('lesson-music-rhythm');
+        return true;
+      case 6:
+        onNavigate('lesson-test');
+        return true;
+      default:
+        return false; // no dedicated content screen; fall back to modal
+    }
+  };
 
-  // Update lessons with completion status from context
+  // Build categories & difficulties from lessons, with sane fallbacks
+  const categories = Array.from(
+    new Set(
+      effectiveLessons
+        .map((l: any) => l.category || 'General')
+        .filter(Boolean)
+    )
+  );
+  const difficulties = Array.from(
+    new Set(
+      effectiveLessons
+        .map((l: any) => l.difficulty || 'Beginner')
+        .filter(Boolean)
+    )
+  );
+
+  // Merge lessonProgress from context into lessons from backend
   const lessonsWithStatus = useMemo(() => {
-    return lessonsData.map(lesson => {
-      const progress = lessonProgress[lesson.id];
-      
+    return effectiveLessons.map((lesson: any) => {
+      // match progress using numeric id or string id
+      const lp =
+        lessonProgress[lesson.id] ||
+        lessonProgress[String(lesson.id)] ||
+        (lesson._id ? lessonProgress[String(lesson._id)] : undefined);
+
       let status: 'not-started' | 'in-progress' | 'completed' = 'not-started';
       let progressPercent = 0;
       let expirationDate: Date | null = null;
-      
-      if (progress) {
-        if (progress.completed) {
+
+      if (lp) {
+        if (lp.completed) {
           status = 'completed';
           progressPercent = 100;
         } else {
           status = 'in-progress';
-          progressPercent = progress.progressPercent;
+          progressPercent = lp.progressPercent ?? 0;
         }
-        expirationDate = progress.expirationDate;
+        expirationDate = lp.expirationDate ?? null;
       }
-      
+
+      const totalLessons = typeof lesson.lessons === 'number' ? lesson.lessons : 0;
+      const completedLessons =
+        progressPercent === 100
+          ? totalLessons
+          : Math.floor((progressPercent / 100) * totalLessons);
+
       return {
         ...lesson,
         status,
         progress: progressPercent,
         expirationDate,
-        completedLessons: progressPercent === 100 ? lesson.lessons : Math.floor((progressPercent / 100) * lesson.lessons),
+        completedLessons,
+        lessons: totalLessons,
       };
     });
-  }, [lessonProgress]);
+  }, [lessonProgress, effectiveLessons]);
 
-  // Filter lessons based on selected filter, search, and advanced filters
-  const filteredLessons = lessonsWithStatus.filter(lesson => {
-    // Status filter
+  // Filter lessons based on status, search, and advanced filters
+  const filteredLessons = lessonsWithStatus.filter((lesson) => {
     if (selectedFilter === 'in-progress' && lesson.status !== 'in-progress') return false;
     if (selectedFilter === 'completed' && lesson.status !== 'completed') return false;
     if (selectedFilter === 'not-started' && lesson.status !== 'not-started') return false;
 
-    // Search filter
-    if (searchQuery && !lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !lesson.description.toLowerCase().includes(searchQuery.toLowerCase())) {
+    const title = (lesson.title || '').toLowerCase();
+    const desc = (lesson.description || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    if (searchQuery && !title.includes(query) && !desc.includes(query)) return false;
+
+    if (
+      selectedCategories.length > 0 &&
+      !selectedCategories.includes(lesson.category || 'General')
+    ) {
       return false;
     }
 
-    // Category filter
-    if (selectedCategories.length > 0 && !selectedCategories.includes(lesson.category)) {
-      return false;
-    }
-
-    // Difficulty filter
-    if (selectedDifficulty.length > 0 && !selectedDifficulty.includes(lesson.difficulty)) {
+    if (
+      selectedDifficulty.length > 0 &&
+      !selectedDifficulty.includes(lesson.difficulty || 'Beginner')
+    ) {
       return false;
     }
 
@@ -84,9 +146,9 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const getCategoryCounts = () => {
     return {
       all: lessonsWithStatus.length,
-      'in-progress': lessonsWithStatus.filter(l => l.status === 'in-progress').length,
-      completed: lessonsWithStatus.filter(l => l.status === 'completed').length,
-      'not-started': lessonsWithStatus.filter(l => l.status === 'not-started').length,
+      'in-progress': lessonsWithStatus.filter((l) => l.status === 'in-progress').length,
+      completed: lessonsWithStatus.filter((l) => l.status === 'completed').length,
+      'not-started': lessonsWithStatus.filter((l) => l.status === 'not-started').length,
     };
   };
 
@@ -106,25 +168,24 @@ export function Lessons({ onNavigate }: LessonsProps) {
       case 'in-progress':
         return <Badge className="bg-blue-500 hover:bg-blue-600">In Progress</Badge>;
       case 'not-started':
-        return <Badge variant="outline" className="border-slate-300 dark:border-slate-600">Not Started</Badge>;
       default:
-        return null;
+        return (
+          <Badge variant="outline" className="border-slate-300 dark:border-slate-600">
+            Not Started
+          </Badge>
+        );
     }
   };
 
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
   };
 
   const toggleDifficulty = (difficulty: string) => {
-    setSelectedDifficulty(prev =>
-      prev.includes(difficulty)
-        ? prev.filter(d => d !== difficulty)
-        : [...prev, difficulty]
+    setSelectedDifficulty((prev) =>
+      prev.includes(difficulty) ? prev.filter((d) => d !== difficulty) : [...prev, difficulty]
     );
   };
 
@@ -143,7 +204,7 @@ export function Lessons({ onNavigate }: LessonsProps) {
         <p className="text-slate-600 dark:text-slate-400">Continue your learning journey</p>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search + Filter */}
       <div className="flex gap-4">
         <div className="flex-1 relative">
           <Input
@@ -162,9 +223,11 @@ export function Lessons({ onNavigate }: LessonsProps) {
             </button>
           )}
         </div>
-        <Button 
-          variant="outline" 
-          className={`dark:bg-slate-800 dark:border-slate-700 ${hasActiveFilters ? 'border-blue-500 text-blue-500' : ''}`}
+        <Button
+          variant="outline"
+          className={`dark:bg-slate-800 dark:border-slate-700 ${
+            hasActiveFilters ? 'border-blue-500 text-blue-500' : ''
+          }`}
           onClick={() => setShowFilterPanel(!showFilterPanel)}
         >
           <Filter className="w-4 h-4 mr-2" />
@@ -177,7 +240,7 @@ export function Lessons({ onNavigate }: LessonsProps) {
         </Button>
       </div>
 
-      {/* Filter Panel */}
+      {/* Advanced Filters */}
       {showFilterPanel && (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -188,12 +251,13 @@ export function Lessons({ onNavigate }: LessonsProps) {
               </Button>
             )}
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Category */}
             <div>
               <h4 className="text-slate-700 dark:text-slate-300 mb-3">Category</h4>
               <div className="flex flex-wrap gap-2">
-                {categories.map(category => (
+                {categories.map((category) => (
                   <button
                     key={category}
                     onClick={() => toggleCategory(category)}
@@ -208,21 +272,22 @@ export function Lessons({ onNavigate }: LessonsProps) {
                 ))}
               </div>
             </div>
-            
+
+            {/* Difficulty */}
             <div>
               <h4 className="text-slate-700 dark:text-slate-300 mb-3">Difficulty</h4>
               <div className="flex flex-wrap gap-2">
-                {difficulties.map(difficulty => (
+                {difficulties.map((d) => (
                   <button
-                    key={difficulty}
-                    onClick={() => toggleDifficulty(difficulty)}
+                    key={d}
+                    onClick={() => toggleDifficulty(d)}
                     className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      selectedDifficulty.includes(difficulty)
+                      selectedDifficulty.includes(d)
                         ? 'bg-blue-500 text-white'
                         : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                     }`}
                   >
-                    {difficulty}
+                    {d}
                   </button>
                 ))}
               </div>
@@ -231,7 +296,7 @@ export function Lessons({ onNavigate }: LessonsProps) {
         </div>
       )}
 
-      {/* Categories */}
+      {/* Status Tabs */}
       <div className="flex gap-3 overflow-x-auto pb-2">
         {categories_tabs.map((category, index) => (
           <button
@@ -244,11 +309,13 @@ export function Lessons({ onNavigate }: LessonsProps) {
             }`}
           >
             {category.name}
-            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-              selectedFilter === category.filter
-                ? 'bg-white/20'
-                : 'bg-slate-100 dark:bg-slate-700'
-            }`}>
+            <span
+              className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                selectedFilter === category.filter
+                  ? 'bg-white/20'
+                  : 'bg-slate-100 dark:bg-slate-700'
+              }`}
+            >
               {category.count}
             </span>
           </button>
@@ -259,20 +326,26 @@ export function Lessons({ onNavigate }: LessonsProps) {
       {filteredLessons.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-slate-400 dark:text-slate-500 mb-2">No lessons found</div>
-          <div className="text-slate-600 dark:text-slate-400">Try adjusting your filters or search query</div>
+          <div className="text-slate-600 dark:text-slate-400">
+            Try adjusting your filters or search query
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredLessons.map((lesson) => (
+          {filteredLessons.map((lesson: any) => (
             <div
-              key={lesson.id}
+              key={lesson._id ?? lesson.id}
               onClick={() => setSelectedLesson(lesson)}
               className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-2xl transition-all group cursor-pointer"
             >
-              {/* Card Header with Gradient */}
-              <div className={`bg-gradient-to-br ${lesson.color} p-6 relative`}>
+              {/* Card Header */}
+              <div
+                className={`bg-gradient-to-br ${
+                  lesson.color || 'from-pink-500 to-rose-600'
+                } p-6 relative`}
+              >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="text-5xl">{lesson.icon}</div>
+                  <div className="text-5xl">{lesson.icon || '📘'}</div>
                   {lesson.status === 'completed' && (
                     <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
                       <Check className="w-5 h-5 text-white" />
@@ -293,8 +366,11 @@ export function Lessons({ onNavigate }: LessonsProps) {
               {/* Card Body */}
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Badge variant="outline" className="border-slate-300 dark:border-slate-600">
-                    {lesson.category}
+                  <Badge
+                    variant="outline"
+                    className="border-slate-300 dark:border-slate-600"
+                  >
+                    {lesson.category || 'General'}
                   </Badge>
                   {getStatusBadge(lesson.status)}
                 </div>
@@ -304,9 +380,11 @@ export function Lessons({ onNavigate }: LessonsProps) {
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-sm mb-2">
                       <span className="text-slate-600 dark:text-slate-400">
-                        {lesson.completedLessons}/{lesson.lessons} lessons
+                        {lesson.completedLessons}/{lesson.lessons || 0} lessons
                       </span>
-                      <span className="text-slate-800 dark:text-slate-200">{lesson.progress}%</span>
+                      <span className="text-slate-800 dark:text-slate-200">
+                        {lesson.progress}%
+                      </span>
                     </div>
                     <Progress value={lesson.progress} className="h-2" />
                   </div>
@@ -320,37 +398,48 @@ export function Lessons({ onNavigate }: LessonsProps) {
                   </div>
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-slate-800 dark:text-slate-200">{lesson.rating}</span>
+                    <span className="text-slate-800 dark:text-slate-200">
+                      {lesson.rating ?? '4.8'}
+                    </span>
                   </div>
                 </div>
 
                 {/* Action Button */}
-                <Button 
-                  className={`w-full ${
-                    lesson.status === 'completed'
-                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700'
-                      : lesson.status === 'in-progress'
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'
-                      : 'bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700'
-                  }`}
-                >
-                  {lesson.status === 'completed' ? (
-                    <>
-                      <Check className="w-4 h-4 mr-2" />
-                      Review Lesson
-                    </>
-                  ) : lesson.status === 'in-progress' ? (
-                    <>
-                      <Play className="w-4 h-4 mr-2" />
-                      Continue Learning
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4 mr-2" />
-                      Start Lesson
-                    </>
-                  )}
-                </Button>
+                <div className="space-y-3">
+                  <Button
+                    className={`w-full ${
+                      lesson.status === 'completed'
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600'
+                        : lesson.status === 'in-progress'
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                        : 'bg-gradient-to-r from-slate-500 to-slate-600'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // 🔹 Try to open dedicated content page first
+                      if (openContentPageForLesson(lesson)) return;
+                      // If there is no dedicated screen, fall back to modal
+                      setSelectedLesson(lesson);
+                    }}
+                  >
+                    {lesson.status === 'completed' ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Review Lesson
+                      </>
+                    ) : lesson.status === 'in-progress' ? (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Continue Learning
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Start Lesson
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
@@ -363,9 +452,10 @@ export function Lessons({ onNavigate }: LessonsProps) {
           lesson={selectedLesson}
           onClose={() => setSelectedLesson(null)}
           onStart={() => {
-            // Navigate to the lesson content page for Shapes & Colors
-            if (selectedLesson.id === 4) {
-              onNavigate('lesson-shapes-colors');
+            // 🔹 From inside the modal, also prefer dedicated content pages
+            if (openContentPageForLesson(selectedLesson)) {
+              setSelectedLesson(null);
+              return;
             }
             setSelectedLesson(null);
           }}

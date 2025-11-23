@@ -1,4 +1,5 @@
-import { LayoutGrid, Lightbulb, CheckSquare, TrendingUp, Settings, HelpCircle, LogOut } from 'lucide-react';
+// frontend/src/components/Sidebar.tsx
+import { LayoutGrid, Lightbulb, CheckSquare, TrendingUp, Settings, HelpCircle, LogOut, Users, BookOpen, Activity } from 'lucide-react';
 import { Page } from '../App';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,7 +9,18 @@ interface SidebarProps {
 }
 
 export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+
+  // derive user info + initials (fallbacks if not present)
+  const displayName = user?.name ?? 'Guest User';
+  const displayEmail = user?.email ?? '';
+  const initials = (() => {
+    if (!user?.name) return 'GU';
+    const parts = user.name.split(' ').filter(Boolean);
+    const slice = parts.slice(0, 2);
+    return slice.map(p => p[0]?.toUpperCase() ?? '').join('');
+  })();
+
   const menuItems = [
     { icon: LayoutGrid, label: 'Dashboard', page: 'dashboard' as Page },
     { icon: Lightbulb, label: 'Lessons', page: 'lessons' as Page },
@@ -18,9 +30,16 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
     { icon: HelpCircle, label: 'Help', page: 'help' as Page },
   ];
 
+  // admin-only items (visible only to admin users)
+  const adminItems = [
+    { icon: Users, label: 'Students', page: 'students' as Page },
+    { icon: BookOpen, label: 'Content', page: 'content' as Page },
+    { icon: Activity, label: 'Analytics', page: 'analytics' as Page },
+  ];
+
   const isPageActive = (page: Page) => {
     if (page === 'settings') {
-      return currentPage === 'settings' || 
+      return currentPage === 'settings' ||
              currentPage === 'profile-settings' ||
              currentPage === 'accessibility-settings' ||
              currentPage === 'notification-settings' ||
@@ -38,6 +57,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
     return currentPage === page;
   };
 
+  const isAdmin = user?.role === 'admin';
+
   return (
     <aside className="w-72 bg-gradient-to-b from-slate-800 to-slate-900 dark:from-slate-950 dark:to-black text-white flex flex-col shadow-2xl">
       {/* Logo */}
@@ -52,19 +73,25 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         <span className="text-white text-xl">EduAid</span>
       </div>
 
-      {/* User Profile */}
+      {/* User Profile (clickable to open Profile Settings) */}
       <div className="px-6 pb-6">
-        <div className="bg-gradient-to-br from-slate-700/50 to-slate-600/30 dark:from-slate-800/50 dark:to-slate-900/30 backdrop-blur-sm rounded-xl p-5 border border-slate-600/30 dark:border-slate-700/30 shadow-lg">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-white">DM</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="truncate">Daniel Mendoza</div>
-              <div className="text-slate-300 dark:text-slate-400 text-sm truncate">danielmendoza0830@gmail.com</div>
+        <button
+          onClick={() => onNavigate('profile-settings')}
+          className="w-full text-left"
+          aria-label="Open profile settings"
+        >
+          <div className="bg-gradient-to-br from-slate-700/50 to-slate-600/30 dark:from-slate-800/50 dark:to-slate-900/30 backdrop-blur-sm rounded-xl p-5 border border-slate-600/30 dark:border-slate-700/30 shadow-lg hover:scale-[1.01] transition-transform">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg text-white font-semibold">
+                {initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium text-white/95">{displayName}</div>
+                <div className="text-slate-300 dark:text-slate-400 text-sm truncate">{displayEmail}</div>
+              </div>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Navigation */}
@@ -87,6 +114,31 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             </button>
           );
         })}
+
+        {/* Admin Section */}
+        {isAdmin && (
+          <>
+            <div className="mt-4 mb-2 px-2 text-xs text-slate-400">Admin</div>
+            {adminItems.map((item, idx) => {
+              const Icon = item.icon;
+              const isActive = isPageActive(item.page);
+              return (
+                <button
+                  key={`admin-${idx}`}
+                  onClick={() => onNavigate(item.page)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                      : 'text-slate-300 hover:bg-slate-700/50 dark:hover:bg-slate-800/50 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* Logout */}

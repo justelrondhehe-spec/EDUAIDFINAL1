@@ -1,0 +1,185 @@
+[
+  {
+    "id": 1,
+    "title": "Introduction to Numbers",
+    "description": "Learn to count and recognize numbers 1–20",
+    "category": "Mathematics",
+    "duration": "20 min",
+    "progress": 0,
+    "status": "not-started",
+    "difficulty": "Beginner",
+    "rating": 4.8,
+    "icon": "🔢",
+    "color": "from-sky-500 to-blue-600",
+    "lessons": 6,
+    "completedLessons": 0,
+    "content": {
+      "introduction": "In this lesson learners will explore numbers 1–20 using visual supports, counting activities, and simple matching games.",
+      "objectives": [
+        "Recognize and name numbers from 1 to 20",
+        "Count objects in a set up to 20",
+        "Match a written numeral to a group of objects",
+        "Begin to understand number order (before / after)"
+      ],
+      "activities": [
+        "Count classroom objects together using fingers and voice",
+        "Number matching game with cards 1–20",
+        "Fill in the missing number on a number line",
+        "Number scavenger hunt around the room"
+      ]
+    },
+    "published": true
+  },
+  {
+    "id": 2,
+    "title": "Reading Basics",
+    "description": "Learn letters, phonics, and simple words",
+    "category": "Language Arts",
+    "duration": "25 min",
+    "progress": 0,
+    "status": "not-started",
+    "difficulty": "Beginner",
+    "rating": 4.7,
+    "icon": "📖",
+    "color": "from-emerald-500 to-teal-500",
+    "lessons": 5,
+    "completedLessons": 0,
+    "content": {
+      "introduction": "This lesson introduces letters and sounds using a multi-sensory approach: seeing, hearing, saying, and tracing each letter.",
+      "objectives": [
+        "Identify upper- and lowercase letters A–Z",
+        "Match each letter with its primary sound",
+        "Blend simple consonant-vowel-consonant (CVC) words",
+        "Read a short decodable sentence with support"
+      ],
+      "activities": [
+        "Alphabet song with pointer or laser on each letter",
+        "Letter-sound flashcards and echo reading",
+        "Build CVC words using letter tiles",
+        "Read and illustrate a one-sentence mini-story"
+      ]
+    },
+    "published": true
+  },
+  {
+    "id": 3,
+    "title": "Science Exploration",
+    "description": "Discover the world around you through fun experiments",
+    "category": "Science",
+    "duration": "30 min",
+    "progress": 0,
+    "status": "not-started",
+    "difficulty": "Beginner",
+    "rating": 4.9,
+    "icon": "🧪",
+    "color": "from-violet-500 to-fuchsia-500",
+    "lessons": 4,
+    "completedLessons": 0,
+    "content": {
+      "introduction": "Young scientists will explore simple experiments that show how we use our senses and make observations.",
+      "objectives": [
+        "Use the five senses to make observations",
+        "Ask simple questions about the world around us",
+        "Record observations with pictures or tally marks",
+        "Understand that experiments help us learn new things"
+      ],
+      "activities": [
+        "Five-senses station rotation (touch, smell, sight, sound, taste*)",
+        "Classroom temperature and weather observation chart",
+        "Sink-or-float prediction and test",
+        "Draw and label one favorite experiment in a science journal"
+      ]
+    },
+    "published": true
+  },
+  {
+    "id": 4,
+    "title": "Shapes & Colors",
+    "description": "Identify and learn about different shapes and colors",
+    "category": "Visual Arts",
+    "duration": "15 min",
+    "progress": 0,
+    "status": "not-started",
+    "difficulty": "Beginner",
+    "rating": 4.6,
+    "icon": "🎨",
+    "color": "from-pink-500 to-rose-500",
+    "lessons": 3,
+    "completedLessons": 0,
+    "content": {
+      "introduction": "In this adventure students meet basic shapes and bright colors through stories, games, and an interactive digital activity.",
+      "objectives": [
+        "Recognize and name square, circle, triangle, and rectangle",
+        "Sort objects by shape and by color",
+        "Match real-world objects to basic shapes",
+        "Use color words to describe objects"
+      ],
+      "activities": [
+        "Shape show-and-tell with classroom objects",
+        "Color sorting using blocks, crayons, or digital tiles",
+        "Real-world shape hunt (take pictures or draw examples)",
+        "Play the Shapes & Colors Challenge activity in EduAid"
+      ]
+    },
+    "published": true
+  },
+  {
+    "id": 5,
+    "title": "Music & Rhythm",
+    "description": "Explore sounds, rhythms, and musical patterns",
+    "category": "Arts",
+    "duration": "18 min",
+    "progress": 0,
+    "status": "not-started",
+    "difficulty": "Beginner",
+    "rating": 4.5,
+    "icon": "🎵",
+    "color": "from-amber-500 to-orange-500",
+    "lessons": 4,
+    "completedLessons": 0,
+    "content": {
+      "introduction": "Students explore beat, tempo, and simple rhythm patterns using clapping, tapping, and digital sound cues.",
+      "objectives": [
+        "Keep a steady beat with clapping or tapping",
+        "Recognize fast vs. slow tempo",
+        "Repeat and create simple rhythm patterns",
+        "Connect rhythm to movement (marching, swaying)"
+      ],
+      "activities": [
+        "Follow-the-beat clapping game",
+        "Echo-rhythm with teacher-created patterns",
+        "Create a 4-beat pattern using body percussion",
+        "Play the Music Rhythm Challenge activity in EduAid"
+      ]
+    },
+    "published": true
+  },
+  {
+    "id": 6,
+    "title": "Test Lesson",
+    "description": "A simple lesson used for testing and demos",
+    "category": "General",
+    "duration": "10 min",
+    "progress": 0,
+    "status": "not-started",
+    "difficulty": "Easy",
+    "rating": 4.0,
+    "icon": "✅",
+    "color": "from-slate-500 to-slate-700",
+    "lessons": 2,
+    "completedLessons": 0,
+    "content": {
+      "introduction": "Use this lesson to quickly verify navigation, progress saving, and admin content management.",
+      "objectives": [
+        "Open a lesson and view its details",
+        "Mark a lesson as completed",
+        "Verify that progress is saved after refresh"
+      ],
+      "activities": [
+        "Read the instructions and mark the lesson complete",
+        "Refresh the page to confirm that the status persists"
+      ]
+    },
+    "published": true
+  }
+]

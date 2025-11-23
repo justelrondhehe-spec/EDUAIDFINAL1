@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -19,6 +19,7 @@ import { AdminAnalytics } from './components/AdminAnalytics';
 import { Lessons } from './components/Lessons';
 import { Activities } from './components/Activities';
 import { Progress } from './components/Progress';
+import { AdminSettings } from './components/AdminSettings';
 import { SettingsGrid } from './components/SettingsGrid';
 import { ProfileSettings } from './components/settings/ProfileSettings';
 import { AccessibilitySettings } from './components/settings/AccessibilitySettings';
@@ -31,6 +32,18 @@ import { ShapesColorsLesson } from './components/ShapesColorsLesson';
 import { ShapeColorSorter } from './components/ShapeColorSorter';
 import { StudentDataSync } from './components/StudentDataSync';
 import { AuthDataSync } from './components/AuthDataSync';
+import { NumbersLesson } from "./components/NumbersLesson";
+import { ReadingBasicsLesson } from "./components/ReadingBasicsLesson";
+import { ScienceExplorationLesson } from "./components/ScienceExplorationLesson";
+import { MusicRhythmLesson } from "./components/MusicRhythmLesson";
+import { TestLessonContent } from "./components/TestLessonContent";
+import { NumberCountingActivity } from './components/NumberCountingActivity';
+import { ReadingComprehensionActivity } from './components/ReadingComprehensionActivity';
+import { ScienceExperimentActivity } from './components/ScienceExperimentActivity';
+import { MusicRhythmActivity } from './components/MusicRhythmActivity';
+import { DemoGameActivity } from './components/DemoGameActivity';
+import { MaintenanceGate } from './components/MaintenanceGate'; // ⬅️ add this
+
 
 export type Page = 
   | 'dashboard' 
@@ -53,7 +66,19 @@ export type Page =
   | 'activity-shape-color-sorter'
   | 'students'
   | 'content'
-  | 'analytics';
+  | 'analytics'
+  | "lesson-numbers"
+  | "lesson-reading-basics"
+  | "lesson-science-exploration"
+  | "lesson-music-rhythm"
+  | "lesson-test"
+  | 'lesson-shapes-colors'
+  | 'activity-shape-color-sorter'
+  | 'activity-number-adventure'
+  | 'activity-reading-quiz'
+  | 'activity-science-lab'
+  | 'activity-music-challenge'
+  | 'activity-demo-game';
 
 function MainApp() {
   const { user } = useAuth();
@@ -73,7 +98,7 @@ function MainApp() {
         case 'analytics':
           return <AdminAnalytics />;
         case 'settings':
-          return <SettingsGrid onNavigate={setCurrentPage} />;
+          return <AdminSettings />;
         case 'help':
         case 'help-getting-started':
         case 'help-video-tutorials':
@@ -135,7 +160,13 @@ function MainApp() {
       case 'help-faqs':
         return <HelpPage currentSection={currentPage} onNavigate={setCurrentPage} />;
       case 'lesson-shapes-colors':
-        return <ShapesColorsLesson onBack={() => setCurrentPage('lessons')} />;
+       return (
+          <ShapesColorsLesson
+            onBackToLessons={() => setCurrentPage('lessons')} // Maps to your 'lessons' page
+            onNavigate={setCurrentPage}                       // Maps to the global page setter
+          />
+        );
+      
       case 'activity-shape-color-sorter':
         return <ShapeColorSorter onBack={() => setCurrentPage('activities')} />;
       default:
@@ -147,6 +178,58 @@ function MainApp() {
             </div>
           </div>
         );
+
+      case "lesson-numbers":
+  return (
+    <NumbersLesson
+      onBackToLessons={() => setCurrentPage("lessons")}
+      onNavigate={setCurrentPage}
+    />
+  );
+case "lesson-reading-basics":
+  return (
+    <ReadingBasicsLesson
+      onBackToLessons={() => setCurrentPage("lessons")}
+      onNavigate={setCurrentPage}
+    />
+  );
+case "lesson-science-exploration":
+  return (
+    <ScienceExplorationLesson
+      onBackToLessons={() => setCurrentPage("lessons")}
+      onNavigate={setCurrentPage}
+    />
+  );
+case "lesson-music-rhythm":
+  return (
+    <MusicRhythmLesson
+      onBackToLessons={() => setCurrentPage("lessons")}
+      onNavigate={setCurrentPage}
+    />
+  );
+case "lesson-test":
+  return (
+    <TestLessonContent
+      onBackToLessons={() => setCurrentPage("lessons")}
+      onNavigate={setCurrentPage}
+    />
+  );
+  case 'activity-number-adventure':
+  return <NumberCountingActivity onBack={() => setCurrentPage('activities')} />;
+
+case 'activity-reading-quiz':
+  return <ReadingComprehensionActivity onBack={() => setCurrentPage('activities')} />;
+
+case 'activity-science-lab':
+  return <ScienceExperimentActivity onBack={() => setCurrentPage('activities')} />;
+
+case 'activity-music-challenge':
+  return <MusicRhythmActivity onBack={() => setCurrentPage('activities')} />;
+
+case 'activity-demo-game':
+  return <DemoGameActivity onBack={() => setCurrentPage('activities')} />;
+
+
     }
   };
 
@@ -188,10 +271,37 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
   const [currentView, setCurrentView] = useState<AppView>('home');
 
+  const [, setAuthVersion] = useState(0);
+
+  useEffect(() => {
+    const handler = (ev: any) => {
+      const u = ev?.detail?.user;
+      // bump local "authVersion" so AppContent re-evaluates; MainApp reads new user from context
+      setAuthVersion(v => v + 1);
+
+      // Optional: if an admin just logged in and we are currently showing a non-auth view,
+      // ensure main app is shown (AppContent renders MainApp when isAuthenticated is true).
+      // If you want to force immediate switch to MainApp if login happened on login page:
+      if (u?.role === 'admin') {
+        // ensure view is 'home' so the main app renders; AppContent checks isAuthenticated anyway.
+        setCurrentView('home');
+      }
+    };
+    window.addEventListener('auth:changed', handler as EventListener);
+    return () => window.removeEventListener('auth:changed', handler as EventListener);
+  }, []);
+
   // If authenticated, show the main app
+    // If authenticated, show the main app
   if (isAuthenticated) {
-    return <MainApp />;
+    // MaintenanceGate will block non-admin users when maintenanceMode is ON
+    return (
+      <MaintenanceGate>
+        <MainApp />
+      </MaintenanceGate>
+    );
   }
+
 
   // If not authenticated, handle navigation between home, login, signup, and info pages
   if (currentView === 'login') {

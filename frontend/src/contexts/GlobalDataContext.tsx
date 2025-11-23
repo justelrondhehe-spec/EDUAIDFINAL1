@@ -1,451 +1,365 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { lessonsData } from '../data/lessonsData';
-import { activitiesData } from '../data/activitiesData';
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import client from "../api/client";
+import { lessonsApi, activitiesApi, adminApi } from "../api/api";
+import { activitiesData as activitiesFixture } from "../data/activitiesData";
+import { lessonsData as lessonsFixture } from "../data/lessonsData";
 
-interface StudentData {
-  id: string;
-  name: string;
-  email: string;
-  grade: string;
-  enrollmentDate: Date;
-  lessonProgress: Record<number, {
-    lessonId: number;
-    completed: boolean;
-    progressPercent: number;
-    completedDate?: Date;
-  }>;
-  activityScores: Record<number, {
-    activityId: number;
-    score: number;
-    maxScore: number;
-    completed: boolean;
-    completedDate?: Date;
-  }>;
-  overallProgressPercent: number;
-}
+type User = any; // tighten later
+type Lesson = any;
+type Activity = any;
 
-interface GlobalActivity {
-  id: string;
-  studentId: string;
-  studentName: string;
-  type: 'enrollment' | 'lesson_complete' | 'activity_complete';
-  message: string;
-  timestamp: Date;
-  color: string;
-}
-
-interface GlobalDataContextType {
-  students: StudentData[];
-  globalActivities: GlobalActivity[];
-  addStudent: (name: string, email: string, grade: string) => void;
-  updateStudentLessonProgress: (studentId: string, lessonId: number, completed: boolean, progressPercent: number) => void;
-  updateStudentActivityProgress: (studentId: string, activityId: number, score: number, maxScore: number, completed: boolean) => void;
+interface GlobalDataContextValue {
+  loading: boolean;
+  users: User[];
+  lessons: Lesson[];
+  activities: Activity[];
+  settings: any | null;
+  refresh: () => Promise<void>;
+  reloadSettings: () => Promise<void>;
   getTotalStudents: () => number;
   getActiveLessons: () => number;
-  getAverageProgress: () => number;
-  getCompletionRate: () => number;
-  getTopPerformers: (limit: number) => Array<{ student: StudentData; overallProgress: number }>;
-  getRecentActivities: (limit: number) => GlobalActivity[];
+  getAverageProgress: () => number; // 0-100
+  getCompletionRate: () => number; // 0-100
+  getTopPerformers: (n?: number) => Array<{ student: User; overallProgress: number }>;
+  getRecentActivities: (limit?: number) => Array<{ id: string; message: string; timestamp: Date; color?: string }>;
 }
 
-const GlobalDataContext = createContext<GlobalDataContextType | undefined>(undefined);
+const safeNumber = (v: any) => (typeof v === "number" && isFinite(v) ? v : 0);
 
-export function GlobalDataProvider({ children }: { children: ReactNode }) {
-  const [students, setStudents] = useState<StudentData[]>([]);
-  const [globalActivities, setGlobalActivities] = useState<GlobalActivity[]>([]);
+// Try to fetch aggregated metrics from backend admin endpoint first (if available)
+export async function fetchAdminDashboardIfAvailable() {
+  try {
+    if (typeof adminApi?.dashboard === "function") {
+      const res = await adminApi.dashboard();
+      if (res && res.data) {
+        console.debug("fetchAdminDashboardIfAvailable -> got dashboard from server", res.data);
+        return res.data;
+      }
+    }
+  } catch (err) {
+    console.debug("fetchAdminDashboardIfAvailable -> no server dashboard or error", err);
+  }
+  return null;
+}
 
-  // Initialize with some demo students
-  useEffect(() => {
-    const demoStudents: StudentData[] = [
-      {
-        id: '1',
-        name: 'Daniel Mendoza',
-        email: 'danielmendoza0830@gmail.com',
-        grade: 'Grade 5',
-        enrollmentDate: new Date('2024-01-15'),
-        lessonProgress: {},
-        activityScores: {},
-        overallProgressPercent: 0,
-      },
-      {
-        id: '2',
-        name: 'Sarah Martinez',
-        email: 'sarah.martinez@example.com',
-        grade: 'Grade 8',
-        enrollmentDate: new Date('2024-01-10'),
-        lessonProgress: {
-          1: { lessonId: 1, completed: true, progressPercent: 100, completedDate: new Date('2024-01-20') },
-          2: { lessonId: 2, completed: true, progressPercent: 100, completedDate: new Date('2024-01-25') },
-          3: { lessonId: 3, completed: true, progressPercent: 100, completedDate: new Date('2024-02-01') },
-          4: { lessonId: 4, completed: true, progressPercent: 100, completedDate: new Date('2024-02-05') },
-          5: { lessonId: 5, completed: true, progressPercent: 100, completedDate: new Date('2024-02-10') },
-        },
-        activityScores: {
-          1: { activityId: 1, score: 10, maxScore: 10, completed: true, completedDate: new Date('2024-01-21') },
-          2: { activityId: 2, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-01-26') },
-          3: { activityId: 3, score: 10, maxScore: 10, completed: true, completedDate: new Date('2024-02-02') },
-          4: { activityId: 4, score: 10, maxScore: 10, completed: true, completedDate: new Date('2024-02-06') },
-          5: { activityId: 5, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-02-11') },
-        },
-        overallProgressPercent: 96,
-      },
-      {
-        id: '3',
-        name: 'Michael Chen',
-        email: 'michael.chen@example.com',
-        grade: 'Grade 7',
-        enrollmentDate: new Date('2024-01-12'),
-        lessonProgress: {
-          1: { lessonId: 1, completed: true, progressPercent: 100, completedDate: new Date('2024-01-18') },
-          2: { lessonId: 2, completed: true, progressPercent: 100, completedDate: new Date('2024-01-24') },
-          3: { lessonId: 3, completed: true, progressPercent: 100, completedDate: new Date('2024-02-03') },
-          4: { lessonId: 4, completed: true, progressPercent: 100, completedDate: new Date('2024-02-08') },
-        },
-        activityScores: {
-          1: { activityId: 1, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-01-19') },
-          2: { activityId: 2, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-01-25') },
-          3: { activityId: 3, score: 10, maxScore: 10, completed: true, completedDate: new Date('2024-02-04') },
-          4: { activityId: 4, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-02-09') },
-        },
-        overallProgressPercent: 92,
-      },
-      {
-        id: '4',
-        name: 'Emma Thompson',
-        email: 'emma.thompson@example.com',
-        grade: 'Grade 6',
-        enrollmentDate: new Date('2024-01-14'),
-        lessonProgress: {
-          1: { lessonId: 1, completed: true, progressPercent: 100, completedDate: new Date('2024-01-22') },
-          2: { lessonId: 2, completed: true, progressPercent: 100, completedDate: new Date('2024-01-28') },
-          3: { lessonId: 3, completed: true, progressPercent: 100, completedDate: new Date('2024-02-05') },
-          4: { lessonId: 4, completed: false, progressPercent: 60 },
-        },
-        activityScores: {
-          1: { activityId: 1, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-01-23') },
-          2: { activityId: 2, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-01-29') },
-          3: { activityId: 3, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-02-06') },
-        },
-        overallProgressPercent: 90,
-      },
-      {
-        id: '5',
-        name: 'James Wilson',
-        email: 'james.wilson@example.com',
-        grade: 'Grade 8',
-        enrollmentDate: new Date('2024-01-16'),
-        lessonProgress: {
-          1: { lessonId: 1, completed: true, progressPercent: 100, completedDate: new Date('2024-01-24') },
-          2: { lessonId: 2, completed: true, progressPercent: 100, completedDate: new Date('2024-01-30') },
-          3: { lessonId: 3, completed: true, progressPercent: 100, completedDate: new Date('2024-02-07') },
-        },
-        activityScores: {
-          1: { activityId: 1, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-01-25') },
-          2: { activityId: 2, score: 8, maxScore: 10, completed: true, completedDate: new Date('2024-01-31') },
-          3: { activityId: 3, score: 9, maxScore: 10, completed: true, completedDate: new Date('2024-02-08') },
-        },
-        overallProgressPercent: 87,
-      },
-      {
-        id: '6',
-        name: 'Olivia Brown',
-        email: 'olivia.brown@example.com',
-        grade: 'Grade 5',
-        enrollmentDate: new Date('2024-01-20'),
-        lessonProgress: {
-          1: { lessonId: 1, completed: true, progressPercent: 100, completedDate: new Date('2024-01-27') },
-          2: { lessonId: 2, completed: true, progressPercent: 100, completedDate: new Date('2024-02-02') },
-        },
-        activityScores: {
-          1: { activityId: 1, score: 8, maxScore: 10, completed: true, completedDate: new Date('2024-01-28') },
-          2: { activityId: 2, score: 8, maxScore: 10, completed: true, completedDate: new Date('2024-02-03') },
-        },
-        overallProgressPercent: 80,
-      },
-      {
-        id: '7',
-        name: 'Liam Garcia',
-        email: 'liam.garcia@example.com',
-        grade: 'Grade 7',
-        enrollmentDate: new Date('2024-01-22'),
-        lessonProgress: {
-          1: { lessonId: 1, completed: true, progressPercent: 100, completedDate: new Date('2024-02-01') },
-          2: { lessonId: 2, completed: false, progressPercent: 45 },
-        },
-        activityScores: {
-          1: { activityId: 1, score: 7, maxScore: 10, completed: true, completedDate: new Date('2024-02-02') },
-        },
-        overallProgressPercent: 70,
-      },
-      {
-        id: '8',
-        name: 'Sophia Lee',
-        email: 'sophia.lee@example.com',
-        grade: 'Grade 6',
-        enrollmentDate: new Date('2024-01-25'),
-        lessonProgress: {
-          1: { lessonId: 1, completed: true, progressPercent: 100, completedDate: new Date('2024-02-05') },
-        },
-        activityScores: {
-          1: { activityId: 1, score: 6, maxScore: 10, completed: true, completedDate: new Date('2024-02-06') },
-        },
-        overallProgressPercent: 60,
-      },
-    ];
+// Compute single-user progress from many possible shapes
+export function computeUserProgress(u: any) {
+  if (!u) return { total: 0, completed: 0, percent: 0 };
 
-    setStudents(demoStudents);
+  if (typeof u.overallProgress === "number") {
+    return { total: 100, completed: u.overallProgress, percent: safeNumber(u.overallProgress) };
+  }
 
-    // Add some initial global activities
-    const initialActivities: GlobalActivity[] = [
-      {
-        id: 'act-1',
-        studentId: '2',
-        studentName: 'Sarah Martinez',
-        type: 'activity_complete',
-        message: 'Sarah Martinez completed "Shape & Color Sorter"',
-        timestamp: new Date(Date.now() - 2 * 60 * 1000),
-        color: 'bg-emerald-500',
-      },
-      {
-        id: 'act-2',
-        studentId: '3',
-        studentName: 'Michael Chen',
-        type: 'lesson_complete',
-        message: 'Michael Chen completed "Shapes & Colors"',
-        timestamp: new Date(Date.now() - 15 * 60 * 1000),
-        color: 'bg-blue-500',
-      },
-      {
-        id: 'act-3',
-        studentId: '4',
-        studentName: 'Emma Thompson',
-        type: 'activity_complete',
-        message: 'Emma Thompson completed "Science Exploration Quiz"',
-        timestamp: new Date(Date.now() - 60 * 60 * 1000),
-        color: 'bg-emerald-500',
-      },
-      {
-        id: 'act-4',
-        studentId: '5',
-        studentName: 'James Wilson',
-        type: 'lesson_complete',
-        message: 'James Wilson completed "Science Exploration"',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        color: 'bg-blue-500',
-      },
-    ];
+  if (u.stats && (typeof u.stats.lessonsCompleted === "number" || typeof u.stats.activitiesCompleted === "number")) {
+    const completed = safeNumber(u.stats.lessonsCompleted) + safeNumber(u.stats.activitiesCompleted);
+    const total = (safeNumber(u.stats.totalLessons) + safeNumber(u.stats.totalActivities)) || completed || 0;
+    const percent = total ? Math.round((completed / total) * 100) : 0;
+    console.debug("computeUserProgress -> used u.stats for", u._id || u.email, { total, completed, percent });
+    return { total, completed, percent };
+  }
 
-    setGlobalActivities(initialActivities);
+  const lessonProgress = u.lessonProgress ?? u.lesson_progress ?? u.lessonsProgress ?? {};
+  const activityScores = u.activityScores ?? u.activity_scores ?? u.activitiesProgress ?? {};
+
+  const lessonKeys = Object.keys(lessonProgress || {});
+  const activityKeys = Object.keys(activityScores || {});
+
+  const lessonCompleted = lessonKeys.filter((k) => {
+    const it = lessonProgress[k];
+    return it && (it.completed === true || it.completed === 1 || it.status === "completed");
+  }).length;
+
+  const activityCompleted = activityKeys.filter((k) => {
+    const it = activityScores[k];
+    return it && (it.completed === true || it.completed === 1 || it.status === "completed");
+  }).length;
+
+  const total = lessonKeys.length + activityKeys.length;
+  const completed = lessonCompleted + activityCompleted;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  console.debug("computeUserProgress -> used lesson/activity shape for", u._id || u.email, {
+    lessonKeys: lessonKeys.length,
+    activityKeys: activityKeys.length,
+    lessonCompleted,
+    activityCompleted,
+    total,
+    completed,
+    percent,
+  });
+
+  return { total, completed, percent };
+}
+
+// High-level helpers used by admin screens
+export async function getDashboardMetrics({
+  users = [],
+  lessons = [],
+  activities = [],
+}: {
+  users?: any[];
+  lessons?: any[];
+  activities?: any[];
+} = {}) {
+  const server = await fetchAdminDashboardIfAvailable();
+  if (server) {
+    return server;
+  }
+
+  const totalStudents = users.length;
+  const activeLessons = (lessons || []).filter((l: any) => l.published !== false).length;
+
+  const percents = (users || []).map((u) => computeUserProgress(u).percent);
+  const avgProgress = percents.length ? Math.round(percents.reduce((a, b) => a + b, 0) / percents.length) : 0;
+
+  let totalItems = 0,
+    completedItems = 0;
+  (users || []).forEach((u) => {
+    const { total, completed } = computeUserProgress(u);
+    totalItems += safeNumber(total);
+    completedItems += safeNumber(completed);
+  });
+  const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+  const topPerformers = (users || [])
+    .map((u) => ({ student: u, overallProgress: computeUserProgress(u).percent }))
+    .sort((a, b) => b.overallProgress - a.overallProgress)
+    .slice(0, 8);
+
+  const recentActivities = (users || [])
+    .slice()
+    .reverse()
+    .map((u) => {
+      const ts = u.lastLogin || u.updatedAt || u.createdAt;
+      return {
+        id: u._id || u.id || Math.random().toString(36).slice(2),
+        message: `${u.name || u.email} active`,
+        timestamp: ts ? new Date(ts) : new Date(),
+        color: "bg-indigo-400",
+      };
+    })
+    .slice(0, 10);
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const dailyActiveUsers = (users || []).filter((u) => {
+    const ts = u.lastLogin || u.updatedAt || u.createdAt;
+    if (!ts) return false;
+    return now - new Date(ts).getTime() <= dayMs;
+  }).length;
+
+  console.debug("getDashboardMetrics -> computed", {
+    totalStudents,
+    activeLessons,
+    avgProgress,
+    completionRate,
+    topPerformers: topPerformers.length,
+    recentActivities: recentActivities.length,
+    dailyActiveUsers,
+  });
+
+  return { totalStudents, activeLessons, avgProgress, completionRate, topPerformers, recentActivities, dailyActiveUsers };
+}
+
+const GlobalDataContext = createContext<GlobalDataContextValue | undefined>(undefined);
+
+export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>(lessonsFixture || []);
+  const [activities, setActivities] = useState<Activity[]>(activitiesFixture || []);
+  const [settings, setSettings] = useState<any | null>(null);
+
+  const reloadSettings = useCallback(async () => {
+    try {
+      const res = await client.get("/settings");
+      setSettings(res.data ?? null);
+    } catch (err) {
+      console.warn("GlobalData: GET /settings failed", err);
+      setSettings(null);
+    }
   }, []);
 
-  const addStudent = (name: string, email: string, grade: string) => {
-    const newStudent: StudentData = {
-      id: Date.now().toString(),
-      name,
-      email,
-      grade,
-      enrollmentDate: new Date(),
-      lessonProgress: {},
-      activityScores: {},
-      overallProgressPercent: 0,
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      // -------- USERS --------
+      let fetchedUsers: User[] = [];
+      try {
+        const res = await client.get("/users");
+        fetchedUsers = res.data ?? [];
+      } catch (err) {
+        console.warn("GlobalData: GET /users failed, using empty user list", err);
+        fetchedUsers = [];
+      }
+      setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
+
+      // -------- LESSONS --------
+      try {
+        const res = await lessonsApi.list();
+        setLessons(Array.isArray(res.data) && res.data.length > 0 ? res.data : lessonsFixture);
+      } catch {
+        setLessons(lessonsFixture);
+      }
+
+      // -------- ACTIVITIES --------
+      try {
+        const res = await activitiesApi.list();
+        setActivities(Array.isArray(res.data) && res.data.length > 0 ? res.data : activitiesFixture);
+      } catch {
+        setActivities(activitiesFixture);
+      }
+
+      // -------- SETTINGS --------
+      await reloadSettings();
+    } finally {
+      setLoading(false);
+    }
+  }, [reloadSettings]);
+
+  useEffect(() => {
+    // initial fetch
+    fetchAll();
+
+    const onLogout = () => {
+      setUsers([]);
+      setLessons(lessonsFixture);
+      setActivities(activitiesFixture);
+      setSettings(null);
     };
+    window.addEventListener("auth:logout", onLogout as EventListener);
 
-    setStudents(prev => [...prev, newStudent]);
-
-    // Add to global activities
-    const activity: GlobalActivity = {
-      id: `act-${Date.now()}`,
-      studentId: newStudent.id,
-      studentName: name,
-      type: 'enrollment',
-      message: `New student enrollment: ${name}`,
-      timestamp: new Date(),
-      color: 'bg-blue-500',
+    const onDataChanged = () => {
+      console.debug("GlobalDataContext -> data:changed received, re-fetching global data");
+      fetchAll().catch((err) => console.warn("fetchAll after data:changed failed", err));
     };
+    window.addEventListener("data:changed", onDataChanged as EventListener);
 
-    setGlobalActivities(prev => [activity, ...prev]);
+    return () => {
+      window.removeEventListener("auth:logout", onLogout as EventListener);
+      window.removeEventListener("data:changed", onDataChanged as EventListener);
+    };
+  }, [fetchAll]);
+
+  // Helper functions (best-effort from available data)
+  const getTotalStudents = () => users.length;
+
+  const getActiveLessons = () => {
+    if (!Array.isArray(lessons) || lessons.length === 0) {
+      return lessonsFixture?.length ?? 0;
+    }
+    return lessons.filter((l: any) => {
+      if (typeof l.published === "boolean") return l.published === true;
+      return true;
+    }).length;
   };
-
-  const updateStudentLessonProgress = (
-    studentId: string,
-    lessonId: number,
-    completed: boolean,
-    progressPercent: number
-  ) => {
-    setStudents(prev =>
-      prev.map(student => {
-        if (student.id === studentId) {
-          const updatedLessonProgress = {
-            ...student.lessonProgress,
-            [lessonId]: {
-              lessonId,
-              completed,
-              progressPercent,
-              completedDate: completed ? new Date() : undefined,
-            },
-          };
-
-          // Recalculate overall progress
-          const completedLessons = Object.values(updatedLessonProgress).filter(l => l.completed).length;
-          const completedActivities = Object.values(student.activityScores).filter(a => a.completed).length;
-          const totalCompleted = completedLessons + completedActivities;
-          const totalAvailable = lessonsData.length + activitiesData.length;
-          const newOverallProgress = totalAvailable > 0 
-            ? Math.round((totalCompleted / totalAvailable) * 100) 
-            : 0;
-
-          // Add to global activities if completed
-          if (completed) {
-            const lesson = lessonsData.find(l => l.id === lessonId);
-            const activity: GlobalActivity = {
-              id: `act-${Date.now()}`,
-              studentId,
-              studentName: student.name,
-              type: 'lesson_complete',
-              message: `${student.name} completed "${lesson?.title || `Lesson ${lessonId}`}"`,
-              timestamp: new Date(),
-              color: 'bg-blue-500',
-            };
-            setGlobalActivities(prev => [activity, ...prev]);
-          }
-
-          return {
-            ...student,
-            lessonProgress: updatedLessonProgress,
-            overallProgressPercent: newOverallProgress,
-          };
-        }
-        return student;
-      })
-    );
-  };
-
-  const updateStudentActivityProgress = (
-    studentId: string,
-    activityId: number,
-    score: number,
-    maxScore: number,
-    completed: boolean
-  ) => {
-    setStudents(prev =>
-      prev.map(student => {
-        if (student.id === studentId) {
-          const updatedActivityScores = {
-            ...student.activityScores,
-            [activityId]: {
-              activityId,
-              score,
-              maxScore,
-              completed,
-              completedDate: completed ? new Date() : undefined,
-            },
-          };
-
-          // Recalculate overall progress
-          const completedLessons = Object.values(student.lessonProgress).filter(l => l.completed).length;
-          const completedActivities = Object.values(updatedActivityScores).filter(a => a.completed).length;
-          const totalCompleted = completedLessons + completedActivities;
-          const totalAvailable = lessonsData.length + activitiesData.length;
-          const newOverallProgress = totalAvailable > 0 
-            ? Math.round((totalCompleted / totalAvailable) * 100) 
-            : 0;
-
-          // Add to global activities if completed
-          if (completed) {
-            const activity = activitiesData.find(a => a.id === activityId);
-            const globalActivity: GlobalActivity = {
-              id: `act-${Date.now()}`,
-              studentId,
-              studentName: student.name,
-              type: 'activity_complete',
-              message: `${student.name} completed "${activity?.title || `Activity ${activityId}`}"`,
-              timestamp: new Date(),
-              color: 'bg-emerald-500',
-            };
-            setGlobalActivities(prev => [globalActivity, ...prev]);
-          }
-
-          return {
-            ...student,
-            activityScores: updatedActivityScores,
-            overallProgressPercent: newOverallProgress,
-          };
-        }
-        return student;
-      })
-    );
-  };
-
-  const getTotalStudents = () => students.length;
-
-  const getActiveLessons = () => lessonsData.length;
 
   const getAverageProgress = () => {
-    if (students.length === 0) return 0;
-    const totalProgress = students.reduce((sum, student) => sum + student.overallProgressPercent, 0);
-    return Math.round(totalProgress / students.length);
+    if (!users.length) return 0;
+    let totals: number[] = [];
+
+    users.forEach((u: any) => {
+      if (typeof u.overallProgress === "number") {
+        totals.push(u.overallProgress);
+        return;
+      }
+
+      const lessonProgress = u.lessonProgress ?? {};
+      const activityScores = u.activityScores ?? {};
+
+      const lessonCount = Object.keys(lessonProgress).length;
+      const lessonCompleted = Object.values(lessonProgress).filter((l: any) => l.completed).length;
+
+      const activityCount = Object.keys(activityScores).length;
+      const activityCompleted = Object.values(activityScores).filter((a: any) => a.completed).length;
+
+      const total = (lessonCount || 0) + (activityCount || 0);
+      const completed = (lessonCompleted || 0) + (activityCompleted || 0);
+
+      totals.push(total > 0 ? (completed / total) * 100 : 0);
+    });
+
+    if (!totals.length) return 0;
+    return Math.round(totals.reduce((s, n) => s + n, 0) / totals.length);
   };
 
   const getCompletionRate = () => {
-    if (students.length === 0) return 0;
-    
-    // Calculate the average completion rate across all students
-    let totalCompletionRate = 0;
-    
-    students.forEach(student => {
-      const completedActivities = Object.values(student.activityScores).filter(a => a.completed);
-      const totalActivities = activitiesData.length;
-      
-      if (totalActivities > 0) {
-        const studentCompletionRate = (completedActivities.length / totalActivities) * 100;
-        totalCompletionRate += studentCompletionRate;
-      }
+    const totalItemsPerUser = users.map((u: any) => {
+      const l = u.lessonProgress ?? {};
+      const a = u.activityScores ?? {};
+      const total = Object.keys(l).length + Object.keys(a).length;
+      const completed =
+        Object.values(l).filter((x: any) => x.completed).length +
+        Object.values(a).filter((x: any) => x.completed).length;
+      return { total, completed };
     });
-    
-    return Math.round(totalCompletionRate / students.length);
+
+    const totals = totalItemsPerUser.reduce(
+      (acc, cur) => {
+        acc.total += cur.total;
+        acc.completed += cur.completed;
+        return acc;
+      },
+      { total: 0, completed: 0 }
+    );
+
+    if (totals.total === 0) return 0;
+    return Math.round((totals.completed / totals.total) * 100);
   };
 
-  const getTopPerformers = (limit: number) => {
-    return students
-      .map(student => ({
-        student,
-        overallProgress: student.overallProgressPercent,
-      }))
-      .sort((a, b) => b.overallProgress - a.overallProgress)
-      .slice(0, limit);
+  const getTopPerformers = (n = 5) => {
+    const computed = users.map((u: any) => {
+      const lessonProgress = u.lessonProgress ?? {};
+      const activityScores = u.activityScores ?? {};
+      const lessonCount = Object.keys(lessonProgress).length;
+      const lessonCompleted = Object.values(lessonProgress).filter((l: any) => l.completed).length;
+      const activityCount = Object.keys(activityScores).length;
+      const activityCompleted = Object.values(activityScores).filter((a: any) => a.completed).length;
+      const total = (lessonCount || 0) + (activityCount || 0);
+      const completed = (lessonCompleted || 0) + (activityCompleted || 0);
+      const overallProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
+      return { student: u, overallProgress };
+    });
+
+    const sorted = computed.sort((a, b) => b.overallProgress - a.overallProgress);
+    return sorted.slice(0, n);
   };
 
-  const getRecentActivities = (limit: number) => {
-    return globalActivities
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, limit);
+  const getRecentActivities = (limit = 10) => {
+    const arr = users
+      .slice()
+      .reverse()
+      .filter((u) => u)
+      .map((u: any) => ({
+        id: u._id || u.id || Math.random() + "",
+        message: `${u.name || u.email} joined`,
+        timestamp: new Date(u.createdAt || Date.now()),
+        color: "bg-indigo-400",
+      }));
+    return arr.slice(0, limit);
   };
 
-  return (
-    <GlobalDataContext.Provider
-      value={{
-        students,
-        globalActivities,
-        addStudent,
-        updateStudentLessonProgress,
-        updateStudentActivityProgress,
-        getTotalStudents,
-        getActiveLessons,
-        getAverageProgress,
-        getCompletionRate,
-        getTopPerformers,
-        getRecentActivities,
-      }}
-    >
-      {children}
-    </GlobalDataContext.Provider>
-  );
-}
+  const value: GlobalDataContextValue = {
+    loading,
+    users,
+    lessons,
+    activities,
+    settings,
+    refresh: fetchAll,
+    reloadSettings,
+    getTotalStudents,
+    getActiveLessons,
+    getAverageProgress,
+    getCompletionRate,
+    getTopPerformers,
+    getRecentActivities,
+  };
 
-export function useGlobalData() {
-  const context = useContext(GlobalDataContext);
-  if (!context) {
-    throw new Error('useGlobalData must be used within GlobalDataProvider');
-  }
-  return context;
-}
+  return <GlobalDataContext.Provider value={value}>{children}</GlobalDataContext.Provider>;
+};
+
+export const useGlobalData = (): GlobalDataContextValue => {
+  const ctx = useContext(GlobalDataContext);
+  if (!ctx) throw new Error("useGlobalData must be used inside GlobalDataProvider");
+  return ctx;
+};

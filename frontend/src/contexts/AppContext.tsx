@@ -1,6 +1,15 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { lessonsData } from '../data/lessonsData';
-import { activitiesData } from '../data/activitiesData';
+// frontend/src/contexts/AppContext.tsx
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
+import { lessonsData as lessonsFixture } from "../data/lessonsData";
+import { activitiesData as activitiesFixture } from "../data/activitiesData";
+import client from "../api/client";
+import { useAuth } from "./AuthContext";
 
 interface Notification {
   id: number;
@@ -8,19 +17,17 @@ interface Notification {
   message: string;
   time: string;
   read: boolean;
-  type: 'info' | 'success' | 'warning' | 'assignment';
+  type: "info" | "success" | "warning" | "assignment";
 }
-
 interface CalendarEvent {
   id: string;
   title: string;
   date: Date;
-  type: 'lesson' | 'activity';
+  type: "lesson" | "activity";
   color: string;
   lessonId?: number;
   activityId?: number;
 }
-
 interface LessonProgress {
   lessonId: number;
   startedDate: Date;
@@ -29,7 +36,6 @@ interface LessonProgress {
   completed: boolean;
   completedDate?: Date;
 }
-
 interface ActivityScore {
   activityId: number;
   score: number;
@@ -38,7 +44,6 @@ interface ActivityScore {
   completed: boolean;
   completedDate?: Date;
 }
-
 interface RecentActivity {
   id: number;
   title: string;
@@ -52,225 +57,388 @@ interface AppContextType {
   notifications: Notification[];
   markNotificationAsRead: (id: number) => void;
   markAllNotificationsAsRead: () => void;
-  addNotification: (notification: Omit<Notification, 'id'>) => void;
+  addNotification: (n: Omit<Notification, "id">) => void;
+
   calendarEvents: CalendarEvent[];
   showInviteModal: boolean;
-  setShowInviteModal: (show: boolean) => void;
+  setShowInviteModal: (b: boolean) => void;
   showNotifications: boolean;
-  setShowNotifications: (show: boolean) => void;
+  setShowNotifications: (b: boolean) => void;
   showNotificationsPanel: boolean;
-  setShowNotificationsPanel: (show: boolean) => void;
+  setShowNotificationsPanel: (b: boolean) => void;
   showCalendar: boolean;
-  setShowCalendar: (show: boolean) => void;
+  setShowCalendar: (b: boolean) => void;
   showProfileMenu: boolean;
-  setShowProfileMenu: (show: boolean) => void;
-  
-  // Lesson tracking
-  lessonProgress: Record<number, LessonProgress>;
+  setShowProfileMenu: (b: boolean) => void;
+
+  lessonProgress: Record<number | string, LessonProgress>;
   startLesson: (lessonId: number) => void;
   updateLessonProgress: (lessonId: number, percent: number) => void;
-  completeLesson: (lessonId: number) => void;
+  completeLesson: (lessonId: number) => Promise<void>;
   saveAndExitLesson: (lessonId: number, percent: number) => void;
-  
-  // Activity tracking
-  activityScores: Record<number, ActivityScore>;
-  completeActivity: (activityId: number, score: number, maxScore: number) => void;
-  
-  // Stats
+
+  activityScores: Record<number | string, ActivityScore>;
+  completeActivity: (
+    activityId: number,
+    score: number,
+    maxScore: number
+  ) => Promise<void>;
+
   overallProgressPercent: number;
   achievementsEarned: number;
   recentActivities: RecentActivity[];
-  
-  // Auth
+
+  lessons: any[];
+  activities: any[];
+
+  // simple auth stubs (kept for backwards compatibility)
   isAuthenticated: boolean;
-  login: (email: string, password: string) => void;
+  login: (email: string, pw: string) => void;
   logout: () => void;
   currentUser: { name: string; email: string } | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+/**
+ * Safely extract the user id from whatever shape the auth user has.
+ * We ALWAYS normalize to a string.
+ */
+function getUserId(authUser: any | null | undefined): string | null {
+  if (!authUser) return null;
+  const uid =
+    authUser._id ??
+    authUser.id ??
+    authUser.userId ??
+    (typeof authUser === "object" && authUser.user && (authUser.user._id || authUser.user.id));
+  if (!uid) return null;
+  return String(uid);
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { user: authUser } = useAuth();
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  
-  // Lesson and activity tracking
-  const [lessonProgress, setLessonProgress] = useState<Record<number, LessonProgress>>({});
-  const [activityScores, setActivityScores] = useState<Record<number, ActivityScore>>({});
-  
+
+  const [lessonProgress, setLessonProgress] = useState<
+    Record<number | string, LessonProgress>
+  >({});
+  const [activityScores, setActivityScores] = useState<
+    Record<number | string, ActivityScore>
+  >({});
+
   const [overallProgressPercent, setOverallProgressPercent] = useState(0);
   const [achievementsEarned, setAchievementsEarned] = useState(3);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
 
-  // Check for expired lessons on mount and periodically
+  // Content loaded from server (admin-created) - fallback to fixtures
+  const [lessons, setLessons] = useState(() => lessonsFixture ?? []);
+  const [activities, setActivities] = useState(() => activitiesFixture ?? []);
+
+  const [userId, setUserId] = useState<string | null>(null);
+
+    // Keep a clean MongoDB user id from authUser
+  useEffect(() => {
+    if (!authUser) {
+      setUserId(null);
+      return;
+    }
+
+    // Only trust _id / userId, ignore any "id" placeholder
+    const raw =
+      (authUser as any)._id ||
+      (authUser as any).userId ||
+      null;
+
+    const idStr = raw ? String(raw) : null;
+
+    // simple ObjectId format check (24 hex chars)
+    if (idStr && /^[0-9a-fA-F]{24}$/.test(idStr)) {
+      setUserId(idStr);
+    } else {
+      console.warn("Auth user has invalid _id, ignoring:", raw);
+      setUserId(null);
+    }
+  }, [authUser]);
+
+
+  // ---------- fetch content (lessons & activities) ----------
+  const fetchContentFromServer = async () => {
+    try {
+      const [lessonsRes, activitiesRes] = await Promise.allSettled([
+        client.get("/lessons"),
+        client.get("/activities"),
+      ]);
+
+      if (
+        lessonsRes.status === "fulfilled" &&
+        Array.isArray((lessonsRes as any).value?.data) &&
+        (lessonsRes as any).value.data.length > 0
+      ) {
+        setLessons((lessonsRes as any).value.data);
+      } else {
+        setLessons(lessonsFixture ?? []);
+      }
+
+      if (
+        activitiesRes.status === "fulfilled" &&
+        Array.isArray((activitiesRes as any).value?.data) &&
+        (activitiesRes as any).value.data.length > 0
+      ) {
+        setActivities((activitiesRes as any).value.data);
+      } else {
+        setActivities(activitiesFixture ?? []);
+      }
+    } catch (err) {
+      console.warn("fetchContentFromServer error", err);
+      setLessons(lessonsFixture ?? []);
+      setActivities(activitiesFixture ?? []);
+    }
+  };
+
+  useEffect(() => {
+    fetchContentFromServer();
+    const onDataChanged = () => fetchContentFromServer();
+    window.addEventListener("data:changed", onDataChanged as EventListener);
+    return () =>
+      window.removeEventListener("data:changed", onDataChanged as EventListener);
+  }, []);
+
+    // ---------- push progress helper ----------
+  const pushProgressToServer = async (patch: any) => {
+    try {
+      if (!userId) {
+        console.debug("pushProgressToServer: no valid userId, skipping server update");
+        return null;
+      }
+
+      console.debug("pushProgressToServer -> PUT /users/%s/progress", userId, patch);
+      const res = await client.put(`/users/${userId}/progress`, patch);
+
+      // tells GlobalDataContext to refetch for admin dashboards
+      window.dispatchEvent(new CustomEvent("data:changed"));
+
+      return res?.data ?? null;
+    } catch (err) {
+      console.warn("pushProgressToServer failed", err);
+      return null;
+    }
+  };
+
+
+  // ---------- notifications helpers ----------
+  const markNotificationAsRead = (id: number) =>
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  const markAllNotificationsAsRead = () =>
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const addNotification = (notification: Omit<Notification, "id">) => {
+    setNotifications((prev) => [
+      { id: Date.now() + Math.floor(Math.random() * 1000), ...notification },
+      ...prev,
+    ]);
+  };
+  const addRecentActivity = (activity: Omit<RecentActivity, "id">) => {
+    setRecentActivities((prev) =>
+      [
+        {
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          ...activity,
+        },
+        ...prev,
+      ].slice(0, 10)
+    );
+  };
+
+  // ---------- load progress when authUser changes ----------
+  useEffect(() => {
+    const uid = getUserId(authUser);
+
+    if (!uid) {
+      // logged out or no user => clear all per-user progress
+      console.log("[AppContext] No auth user; clearing local progress.");
+      setLessonProgress({});
+      setActivityScores({});
+      return;
+    }
+
+    const loadProgress = async () => {
+      try {
+        console.log("[AppContext] Loading progress for user", uid);
+        const res = await client.get(`/users/${uid}`);
+        const data = res.data || {};
+
+        const serverLessonProgress =
+          data.lessonProgress ??
+          data.lesson_progress ??
+          data.lessonsProgress ??
+          {};
+        const serverActivityScores =
+          data.activityScores ??
+          data.activity_scores ??
+          data.activitiesProgress ??
+          {};
+
+        const normalizedLessons: Record<number | string, any> = {};
+        Object.entries(serverLessonProgress).forEach(([k, v]) => {
+          const copy = { ...(v as any) };
+          if (copy.startedDate && typeof copy.startedDate === "string")
+            copy.startedDate = new Date(copy.startedDate);
+          if (copy.expirationDate && typeof copy.expirationDate === "string")
+            copy.expirationDate = new Date(copy.expirationDate);
+          if (copy.completedDate && typeof copy.completedDate === "string")
+            copy.completedDate = new Date(copy.completedDate);
+          normalizedLessons[k] = copy;
+        });
+
+        const normalizedActivities: Record<number | string, any> = {};
+        Object.entries(serverActivityScores).forEach(([k, v]) => {
+          const copy = { ...(v as any) };
+          if (copy.dueDate && typeof copy.dueDate === "string")
+            copy.dueDate = new Date(copy.dueDate);
+          if (copy.completedDate && typeof copy.completedDate === "string")
+            copy.completedDate = new Date(copy.completedDate);
+          normalizedActivities[k] = copy;
+        });
+
+        console.log(
+          "[AppContext] Loaded lessonProgress keys:",
+          Object.keys(normalizedLessons),
+          "activityScores keys:",
+          Object.keys(normalizedActivities)
+        );
+
+        // Replace existing state with what we got from server
+        setLessonProgress(normalizedLessons as any);
+        setActivityScores(normalizedActivities as any);
+      } catch (err) {
+        console.warn("[AppContext] Failed to load user progress", err);
+        // IMPORTANT: do NOT wipe out existing local progress on error
+        // (we already clear when user logs out).
+      }
+    };
+
+    loadProgress();
+  }, [authUser]);
+
+  // ---------- expire lessons locally ----------
   useEffect(() => {
     const checkExpiredLessons = () => {
       const now = new Date();
-      setLessonProgress(prev => {
-        const updated = { ...prev };
-        let hasChanges = false;
-        
-        Object.values(updated).forEach(lesson => {
-          if (!lesson.completed && now > lesson.expirationDate) {
-            // Reset the lesson progress
-            delete updated[lesson.lessonId];
-            hasChanges = true;
-            
+      setLessonProgress((prev) => {
+        const updated: Record<number | string, LessonProgress> = { ...prev };
+        let changed = false;
+        for (const key of Object.keys(updated)) {
+          const lp = updated[key];
+          if (!lp.completed && lp.expirationDate && now > lp.expirationDate) {
+            delete updated[key];
+            changed = true;
             addNotification({
-              title: 'Lesson Expired ⏰',
-              message: `Your progress on lesson ${lesson.lessonId} has been reset. You can start it again anytime!`,
-              time: 'Just now',
+              title: "Lesson Expired ⏰",
+              message: `Your progress on lesson ${lp.lessonId} has been reset.`,
+              time: "Just now",
               read: false,
-              type: 'warning',
+              type: "warning",
             });
           }
-        });
-        
-        return hasChanges ? updated : prev;
+        }
+        return changed ? updated : prev;
       });
     };
-    
+
     checkExpiredLessons();
-    const interval = setInterval(checkExpiredLessons, 60000); // Check every minute
-    
-    return () => clearInterval(interval);
+    const i = setInterval(checkExpiredLessons, 60000);
+    return () => clearInterval(i);
   }, []);
 
-  // Update calendar events when lessons or activities change
+  // ---------- calendar events ----------
   useEffect(() => {
     const events: CalendarEvent[] = [];
-    
-    // Add lesson expiration dates
-    Object.values(lessonProgress).forEach(lesson => {
-      if (!lesson.completed) {
-        const lessonData = lessonsData.find(l => l.id === lesson.lessonId);
-        const lessonTitle = lessonData?.title || `Lesson ${lesson.lessonId}`;
+
+    Object.values(lessonProgress).forEach((lp) => {
+      if (!lp.completed && lp.expirationDate) {
+        const lessonId = lp.lessonId;
+        const lessonObj = lessons.find(
+          (l) =>
+            (l.id !== undefined && Number(l.id) === Number(lessonId)) ||
+            String(l._id) === String(lessonId)
+        );
+        const lessonTitle = lessonObj?.title ?? `Lesson ${lessonId}`;
         events.push({
-          id: `lesson-${lesson.lessonId}`,
+          id: `lesson-${lessonId}`,
           title: `${lessonTitle} - Expires`,
-          date: lesson.expirationDate,
-          type: 'lesson',
-          color: 'from-purple-500 to-purple-600',
-          lessonId: lesson.lessonId,
+          date: lp.expirationDate,
+          type: "lesson",
+          color: "from-purple-500 to-purple-600",
+          lessonId,
         });
       }
     });
-    
-    // Add activity due dates from activities data
-    activitiesData.forEach(activity => {
-      // Check if activity is unlocked (related lesson is completed or no related lesson)
-      const isUnlocked = activity.relatedLessonId === undefined || 
-        lessonProgress[activity.relatedLessonId]?.completed || false;
-      
-      // Check if activity is not completed
-      const activityScore = activityScores[activity.id];
-      const isCompleted = activityScore?.completed || false;
-      
-      // Only add if unlocked and not completed
+
+    (activities || []).forEach((act) => {
+      const relatedId = act.relatedLessonId;
+      const isUnlocked =
+        relatedId === undefined || lessonProgress[relatedId]?.completed || false;
+      const score = activityScores[act.id] ?? activityScores[String(act.id)];
+      const isCompleted = score?.completed || false;
+
       if (isUnlocked && !isCompleted) {
-        // Use due date from activityScores if available, otherwise use dueTimestamp from activity data
         let dueDate: Date | null = null;
-        
-        if (activityScore?.dueDate) {
-          dueDate = activityScore.dueDate;
-        } else if (activity.dueTimestamp) {
-          dueDate = new Date(activity.dueTimestamp);
-        }
-        
-        // Only add event if there's a due date
+        if (score?.dueDate) dueDate = score.dueDate;
+        else if (act.dueTimestamp) dueDate = new Date(act.dueTimestamp);
         if (dueDate) {
           events.push({
-            id: `activity-${activity.id}`,
-            title: `Due: ${activity.title}`,
+            id: `activity-${act.id}`,
+            title: `Due: ${act.title}`,
             date: dueDate,
-            type: 'activity',
-            color: activity.color || 'from-blue-500 to-indigo-600',
-            activityId: activity.id,
+            type: "activity",
+            color: act.color || "from-blue-500 to-indigo-600",
+            activityId: act.id,
           });
         }
       }
     });
-    
-    setCalendarEvents(events);
-  }, [lessonProgress, activityScores]);
 
-  // Calculate overall progress percentage based on activity scores
+    setCalendarEvents(events);
+  }, [lessonProgress, activityScores, lessons, activities]);
+
+  // ---------- overall progress ----------
   useEffect(() => {
-    const completedActivities = Object.values(activityScores).filter(a => a.completed);
-    
+    const completedActivities = Object.values(activityScores).filter(
+      (a) => a.completed
+    );
     if (completedActivities.length === 0) {
       setOverallProgressPercent(0);
       return;
     }
-    
-    // Calculate average percentage across all completed activities
-    const totalPercentage = completedActivities.reduce((sum, activity) => {
-      return sum + (activity.score / activity.maxScore) * 100;
-    }, 0);
-    
-    const averagePercent = Math.round(totalPercentage / completedActivities.length);
-    setOverallProgressPercent(averagePercent);
+    const totalPerc = completedActivities.reduce(
+      (s, a) => s + (a.score / a.maxScore) * 100,
+      0
+    );
+    setOverallProgressPercent(Math.round(totalPerc / completedActivities.length));
   }, [activityScores]);
 
-  const markNotificationAsRead = (id: number) => {
-    setNotifications(prev =>
-      prev.map(notif =>
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
-  };
-
-  const markAllNotificationsAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notif => ({ ...notif, read: true }))
-    );
-  };
-
-  const addNotification = (notification: Omit<Notification, 'id'>) => {
-    setNotifications(prev => {
-      const newId = Date.now() + Math.floor(Math.random() * 1000);
-      return [{
-        id: newId,
-        ...notification,
-      }, ...prev];
-    });
-  };
-
-  const addRecentActivity = (activity: Omit<RecentActivity, 'id'>) => {
-    setRecentActivities(prev => {
-      const newId = Date.now() + Math.floor(Math.random() * 1000);
-      return [{
-        id: newId,
-        ...activity,
-      }, ...prev].slice(0, 10); // Keep only the 10 most recent
-    });
-  };
-
+  // ---------- lesson helpers ----------
   const startLesson = (lessonId: number) => {
-    setLessonProgress(prev => {
-      if (prev[lessonId]) return prev; // Already started
-      
+    setLessonProgress((prev) => {
+      if (prev[lessonId] || prev[String(lessonId)]) return prev;
       const startedDate = new Date();
       const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 7); // 7 days to complete
-      
-      addNotification({
-        title: 'Lesson Started! 📚',
-        message: `You have 7 days to complete this lesson. Your progress will be saved automatically.`,
-        time: 'Just now',
-        read: false,
-        type: 'info',
-      });
-      
-      return {
+      expirationDate.setDate(expirationDate.getDate() + 7);
+
+      const updated: Record<number | string, LessonProgress> = {
         ...prev,
         [lessonId]: {
           lessonId,
@@ -280,267 +448,270 @@ export function AppProvider({ children }: { children: ReactNode }) {
           completed: false,
         },
       };
+
+      pushProgressToServer({
+        lessonProgress: {
+          [lessonId]: {
+            lessonId,
+            startedDate: startedDate.toISOString(),
+            expirationDate: expirationDate.toISOString(),
+            progressPercent: 0,
+            completed: false,
+          },
+        },
+      }).catch(() => {});
+
+      addNotification({
+        title: "Lesson Started! 📚",
+        message: "You have 7 days to complete this lesson.",
+        time: "Just now",
+        read: false,
+        type: "info",
+      });
+
+      return updated;
     });
   };
 
   const updateLessonProgress = (lessonId: number, percent: number) => {
-    setLessonProgress(prev => {
-      if (!prev[lessonId]) return prev;
-      
-      return {
+    setLessonProgress((prev) => {
+      const existing = prev[lessonId] ?? prev[String(lessonId)];
+      if (!existing) return prev;
+      const clamped = Math.min(percent, 100);
+      const updated = {
         ...prev,
-        [lessonId]: {
-          ...prev[lessonId],
-          progressPercent: Math.min(percent, 100),
-        },
+        [lessonId]: { ...existing, progressPercent: clamped },
       };
+
+      const lp = updated[lessonId];
+      pushProgressToServer({
+        lessonProgress: {
+          [lessonId]: {
+            lessonId,
+            startedDate: lp.startedDate?.toISOString?.() ?? lp.startedDate,
+            expirationDate:
+              lp.expirationDate?.toISOString?.() ?? lp.expirationDate,
+            progressPercent: clamped,
+            completed: lp.completed ?? false,
+          },
+        },
+      }).catch(() => {});
+
+      return updated;
     });
   };
 
   const saveAndExitLesson = (lessonId: number, percent: number) => {
     updateLessonProgress(lessonId, percent);
     addNotification({
-      title: 'Progress Saved! 💾',
-      message: 'Your lesson progress has been saved. You can continue anytime!',
-      time: 'Just now',
+      title: "Progress Saved! 💾",
+      message: "Your lesson progress has been saved.",
+      time: "Just now",
       read: false,
-      type: 'success',
+      type: "success",
     });
   };
 
-  const completeLesson = (lessonId: number) => {
-    setLessonProgress(prev => {
-      const lesson = prev[lessonId];
-      if (!lesson || lesson.completed) return prev;
-      
-      const completedLessons = Object.values(prev).filter(l => l.completed).length;
-      const newCompletedCount = completedLessons + 1;
+  const completeLesson = async (lessonId: number) => {
+    setLessonProgress((prev) => {
+      const existing = prev[lessonId] ?? prev[String(lessonId)];
+      if (existing && existing.completed) return prev;
+
       const completedDate = new Date();
-      
-      // Add to recent activities
-      const lessonData = lessonsData.find(l => l.id === lessonId);
-      const lessonTitle = lessonData?.title || `Lesson ${lessonId}`;
-      addRecentActivity({
-        title: `Completed "${lessonTitle}"`,
-        time: 'Just now',
-        icon: '✅',
-        color: 'text-emerald-500',
-        timestamp: completedDate,
-      });
-      
-      // Add notification for lesson completion
-      addNotification({
-        title: 'Lesson Completed! 🎉',
-        message: 'Great job! You successfully completed the lesson',
-        time: 'Just now',
-        read: false,
-        type: 'success',
-      });
-      
-      // Initialize activity scores for related activities with due dates
-      setActivityScores(prevScores => {
-        const updatedScores = { ...prevScores };
-        const relatedActivities = activitiesData.filter(a => a.relatedLessonId === lessonId);
-        
-        relatedActivities.forEach(activity => {
-          if (!updatedScores[activity.id]) {
-            const dueDate = new Date(completedDate);
-            dueDate.setDate(dueDate.getDate() + 1); // Due in 1 day
-            
-            updatedScores[activity.id] = {
-              activityId: activity.id,
-              score: 0,
-              maxScore: activity.totalQuestions || 100,
-              dueDate,
-              completed: false,
-            };
-          }
-        });
-        
-        return updatedScores;
-      });
-      
-      // Notify about unlocked activities
-      setTimeout(() => {
-        addNotification({
-          title: 'New Activities Unlocked! 🎮',
-          message: 'Complete the lesson activities within 1 day to earn badges!',
-          time: 'Just now',
-          read: false,
-          type: 'info',
-        });
-      }, 2000);
-      
-      // Achievement for completing first lesson
-      if (newCompletedCount === 1) {
-        setAchievementsEarned(count => count + 1);
-        setTimeout(() => {
-          addNotification({
-            title: 'Achievement Unlocked! 🏆',
-            message: 'You earned the "Eager Learner" badge for completing your first lesson!',
-            time: 'Just now',
-            read: false,
-            type: 'success',
-          });
-        }, 3000);
-      }
-      
-      // Achievement for completing 5 lessons
-      if (newCompletedCount === 5) {
-        setAchievementsEarned(count => count + 1);
-        addNotification({
-          title: 'Achievement Unlocked! 🏆',
-          message: 'You earned the "Knowledge Seeker" badge for completing 5 lessons!',
-          time: 'Just now',
-          read: false,
-          type: 'success',
-        });
-      }
-      
-      // Achievement for completing 10 lessons
-      if (newCompletedCount === 10) {
-        setAchievementsEarned(count => count + 1);
-        addNotification({
-          title: 'Achievement Unlocked! 🏆',
-          message: 'You earned the "Master Student" badge for completing 10 lessons!',
-          time: 'Just now',
-          read: false,
-          type: 'success',
-        });
-      }
-      
-      return {
+      const started = existing?.startedDate ?? new Date();
+      const exp =
+        existing?.expirationDate ??
+        (() => {
+          const d = new Date();
+          d.setDate(d.getDate() + 7);
+          return d;
+        })();
+
+      const updated: Record<number | string, LessonProgress> = {
         ...prev,
         [lessonId]: {
-          ...lesson,
+          lessonId,
+          startedDate: started,
+          expirationDate: exp,
           progressPercent: 100,
           completed: true,
           completedDate,
         },
       };
-    });
-  };
 
-  const completeActivity = (activityId: number, score: number, maxScore: number) => {
-    setActivityScores(prev => {
-      const activity = prev[activityId];
-      if (activity && activity.completed) return prev; // Already completed
-      
-      const percentScore = Math.round((score / maxScore) * 100);
-      const completedDate = new Date();
-      
-      // Add to recent activities
-      const activityData = activitiesData.find(a => a.id === activityId);
-      const activityTitle = activityData?.title || `Activity ${activityId}`;
+      const lessonObj = lessons.find(
+        (l) =>
+          Number(l.id) === Number(lessonId) ||
+          String(l._id) === String(lessonId)
+      );
+      const title = lessonObj?.title ?? `Lesson ${lessonId}`;
+
       addRecentActivity({
-        title: `Completed "${activityTitle}"`,
-        time: 'Just now',
-        icon: '✅',
-        color: 'text-emerald-500',
+        title: `Completed "${title}"`,
+        time: "Just now",
+        icon: "✅",
+        color: "text-emerald-500",
         timestamp: completedDate,
       });
-      
-      // Add notification for activity completion
-      const message = percentScore === 100 
-        ? `Perfect score! You got ${score}/${maxScore} correct! 🌟`
-        : `You got ${score}/${maxScore} correct (${percentScore}%). Try again to improve!`;
-      
       addNotification({
-        title: 'Activity Completed! ✅',
-        message,
-        time: 'Just now',
+        title: "Lesson Completed! 🎉",
+        message: "Great job!",
+        time: "Just now",
         read: false,
-        type: percentScore === 100 ? 'success' : 'info',
+        type: "success",
       });
-      
-      // Check for achievement milestones
-      const completedActivities = Object.values(prev).filter(a => a.completed).length;
-      const newCompletedCount = completedActivities + 1;
-      
-      // First activity achievement
-      if (newCompletedCount === 1) {
-        setAchievementsEarned(count => count + 1);
-        setTimeout(() => {
-          addNotification({
-            title: 'Achievement Unlocked! 🏆',
-            message: 'You earned the "First Steps" badge for completing your first activity!',
-            time: 'Just now',
-            read: false,
-            type: 'success',
-          });
-        }, 1500);
-      }
-      
-      // 5 activities achievement
-      if (newCompletedCount === 5) {
-        setAchievementsEarned(count => count + 1);
-        addNotification({
-          title: 'Achievement Unlocked! 🏆',
-          message: 'You earned the "Practice Makes Perfect" badge!',
-          time: 'Just now',
-          read: false,
-          type: 'success',
+
+      const related = activities.filter(
+        (a) => Number(a.relatedLessonId) === Number(lessonId)
+      );
+      setActivityScores((prevS) => {
+        const copy: Record<number | string, ActivityScore> = { ...prevS };
+        related.forEach((a) => {
+          if (!copy[a.id] && !copy[String(a.id)]) {
+            const dueDate = new Date(completedDate);
+            dueDate.setDate(dueDate.getDate() + 1);
+            copy[a.id] = {
+              activityId: a.id,
+              score: 0,
+              maxScore: a.totalQuestions || 100,
+              dueDate,
+              completed: false,
+            };
+          }
         });
+        return copy;
+      });
+
+      if (Object.values(prev).filter((l) => l.completed).length === 0) {
+        setAchievementsEarned((c) => c + 1);
+        setTimeout(
+          () =>
+            addNotification({
+              title: "Achievement Unlocked! 🏆",
+              message: "Eager Learner",
+              time: "Just now",
+              read: false,
+              type: "success",
+            }),
+          3000
+        );
       }
-      
-      // 10 activities achievement
-      if (newCompletedCount === 10) {
-        setAchievementsEarned(count => count + 1);
-        addNotification({
-          title: 'Achievement Unlocked! 🏆',
-          message: 'You earned the "Activity Champion" badge!',
-          time: 'Just now',
-          read: false,
-          type: 'success',
-        });
-      }
-      
-      // Perfect score achievement
-      if (percentScore === 100 && !Object.values(prev).some(a => a.score === a.maxScore && a.completed)) {
-        setAchievementsEarned(count => count + 1);
-        setTimeout(() => {
-          addNotification({
-            title: 'Achievement Unlocked! 🏆',
-            message: 'You earned the "Perfectionist" badge for getting a perfect score!',
-            time: 'Just now',
-            read: false,
-            type: 'success',
-          });
-        }, 2000);
-      }
-      
-      return {
+
+      return updated;
+    });
+
+    const nowIso = new Date().toISOString();
+    const lessonPayload: any = {
+      lessonProgress: {
+        [lessonId]: {
+          lessonId,
+          completed: true,
+          completedDate: nowIso,
+          progressPercent: 100,
+        },
+      },
+    };
+
+    const related = activities.filter(
+      (a) => Number(a.relatedLessonId) === Number(lessonId)
+    );
+    if (related.length) {
+      lessonPayload.activityScores = {};
+      related.forEach((a) => {
+        const due = new Date();
+        due.setDate(due.getDate() + 1);
+        lessonPayload.activityScores[a.id] = {
+          activityId: a.id,
+          completed: false,
+          dueDate: due.toISOString(),
+          score: 0,
+          maxScore: a.totalQuestions ?? 100,
+        };
+      });
+    }
+
+    await pushProgressToServer(lessonPayload);
+  };
+
+  const completeActivity = async (
+    activityId: number,
+    score: number,
+    maxScore: number
+  ) => {
+    setActivityScores((prev) => {
+      const existing = prev[activityId] ?? prev[String(activityId)];
+      if (existing && existing.completed) return prev;
+
+      const percentScore = Math.round((score / maxScore) * 100);
+      const compDate = new Date();
+
+      const title =
+        activities.find((a) => a.id === activityId)?.title ??
+        activities.find((a) => String(a._id) === String(activityId))?.title ??
+        `Activity ${activityId}`;
+
+      addRecentActivity({
+        title: `Completed "${title}"`,
+        time: "Just now",
+        icon: "✅",
+        color: "text-emerald-500",
+        timestamp: compDate,
+      });
+      addNotification({
+        title: "Activity Completed! ✅",
+        message:
+          percentScore === 100
+            ? `Perfect score! ${score}/${maxScore}`
+            : `You got ${score}/${maxScore}`,
+        time: "Just now",
+        read: false,
+        type: percentScore === 100 ? "success" : "info",
+      });
+
+      const updated: Record<number | string, ActivityScore> = {
         ...prev,
         [activityId]: {
           activityId,
           score,
           maxScore,
-          dueDate: activity?.dueDate || null,
+          dueDate: existing?.dueDate ?? null,
           completed: true,
-          completedDate: new Date(),
+          completedDate: compDate,
         },
       };
+      return updated;
     });
+
+    const payload = {
+      activityScores: {
+        [activityId]: {
+          activityId,
+          completed: true,
+          score,
+          maxScore,
+          completedDate: new Date().toISOString(),
+        },
+      },
+    };
+    await pushProgressToServer(payload);
   };
 
-  const login = (email: string, password: string) => {
+  // simple auth stubs for older components (not the real auth)
+  const login = (email: string, pw: string) => {
     setIsAuthenticated(true);
-    setCurrentUser({
-      name: 'Daniel',
-      email: email,
-    });
-    
-    setTimeout(() => {
-      addNotification({
-        title: 'Welcome Back! 👋',
-        message: 'Ready to continue your learning journey?',
-        time: 'Just now',
-        read: false,
-        type: 'info',
-      });
-    }, 500);
+    setCurrentUser({ name: "Demo", email });
+    setTimeout(
+      () =>
+        addNotification({
+          title: "Welcome Back! 👋",
+          message: "",
+          time: "Just now",
+          read: false,
+          type: "info",
+        }),
+      400
+    );
   };
-
   const logout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
@@ -569,6 +740,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateLessonProgress,
         completeLesson,
         saveAndExitLesson,
+        lessons,
+        activities,
         activityScores,
         completeActivity,
         overallProgressPercent,
@@ -586,9 +759,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 }
 
 export function useApp() {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within AppProvider');
-  }
-  return context;
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error("useApp must be used within AppProvider");
+  return ctx;
 }
