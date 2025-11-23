@@ -1,238 +1,206 @@
-import { ArrowLeft, Globe, Clock, Calendar as CalendarIcon, DollarSign, Save } from 'lucide-react';
+// frontend/src/components/settings/LanguageRegion.tsx
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Globe2, Clock } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import client from '../../api/client';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface LanguageRegionProps {
   onBack: () => void;
 }
 
+interface LanguageRegionState {
+  language: string;
+  locale: string;
+  timezone: string;
+  dateFormat: string;
+  timeFormat: '12h' | '24h';
+  showTranslatedInstructions: boolean;
+}
+
+const DEFAULT_STATE: LanguageRegionState = {
+  language: 'en',
+  locale: 'en-US',
+  timezone: 'Asia/Manila',
+  dateFormat: 'MM/DD/YYYY',
+  timeFormat: '12h',
+  showTranslatedInstructions: true,
+};
+
 export function LanguageRegion({ onBack }: LanguageRegionProps) {
+  const { user } = useAuth();
+  const userId = user?._id || user?.id || user?.userId;
+  const [form, setForm] = useState<LanguageRegionState>(DEFAULT_STATE);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await client.get(`/users/${userId}/language-region-settings`);
+        if (cancelled) return;
+        setForm({ ...DEFAULT_STATE, ...(res.data || {}) });
+      } catch {
+        setForm(DEFAULT_STATE);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const update = (patch: Partial<LanguageRegionState>) =>
+    setForm((prev) => ({ ...prev, ...patch }));
+
+  const handleSave = async () => {
+    if (!userId) return;
+    setSaving(true);
+    try {
+      await client.put(`/users/${userId}/language-region-settings`, form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
-          className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+          className="w-10 h-10 rounded-xl bg-white/5 border border-slate-700 flex items-center justify-center hover:bg-white/10 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 text-slate-600" />
+          <ArrowLeft className="w-5 h-5 text-slate-100" />
         </button>
         <div>
-          <h1 className="text-slate-800">Language & Region</h1>
-          <p className="text-slate-600">Set your language and regional preferences</p>
+          <h1 className="text-slate-50">Language & Region</h1>
+          <p className="text-slate-400">Set your preferences</p>
         </div>
       </div>
 
-      {/* Content */}
       <div className="space-y-6">
-        {/* Language Settings */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+        {/* Language */}
+        <div className="bg-slate-900/60 rounded-2xl border border-slate-700 p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
-              <Globe className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
+              <Globe2 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-slate-800">Language Settings</h3>
-              <p className="text-slate-600 text-sm">Choose your preferred language</p>
+              <h3 className="text-slate-50">Language</h3>
+              <p className="text-slate-400 text-sm">
+                Choose the main language for EduAid.
+              </p>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label>Display Language</Label>
-              <Select defaultValue="en">
-                <SelectTrigger>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-slate-200">App language</Label>
+              <Select value={form.language} onValueChange={(v) => update({ language: v })}>
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-100">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Español (Spanish)</SelectItem>
-                  <SelectItem value="fr">Français (French)</SelectItem>
-                  <SelectItem value="de">Deutsch (German)</SelectItem>
-                  <SelectItem value="zh">中文 (Chinese)</SelectItem>
-                  <SelectItem value="ja">日本語 (Japanese)</SelectItem>
-                  <SelectItem value="ko">한국어 (Korean)</SelectItem>
-                  <SelectItem value="pt">Português (Portuguese)</SelectItem>
-                  <SelectItem value="it">Italiano (Italian)</SelectItem>
-                  <SelectItem value="ru">Русский (Russian)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Content Language</Label>
-              <Select defaultValue="en">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="fil">Filipino</SelectItem>
                   <SelectItem value="es">Spanish</SelectItem>
-                  <SelectItem value="fr">French</SelectItem>
-                  <SelectItem value="de">German</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-slate-500 text-sm">Language for lessons and activities</p>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="auto-translate">Auto-translate</Label>
-                <p className="text-slate-500 text-sm">Automatically translate content to your language</p>
-              </div>
-              <Switch id="auto-translate" />
+            <div className="space-y-2">
+              <Label className="text-slate-200">Locale</Label>
+              <Select value={form.locale} onValueChange={(v) => update({ locale: v })}>
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-100">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en-US">English (United States)</SelectItem>
+                  <SelectItem value="en-GB">English (United Kingdom)</SelectItem>
+                  <SelectItem value="en-PH">English (Philippines)</SelectItem>
+                  <SelectItem value="fil-PH">Filipino (Philippines)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between">
+            <div className="flex-1">
+              <Label>Translated instructions</Label>
+              <p className="text-slate-400 text-sm">
+                Show short translations of instructions in your chosen language.
+              </p>
+            </div>
+            <Switch
+              checked={form.showTranslatedInstructions}
+              onCheckedChange={(v) => update({ showTranslatedInstructions: v })}
+            />
           </div>
         </div>
 
-        {/* Time & Date */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+        {/* Region / time */}
+        <div className="bg-slate-900/60 rounded-2xl border border-slate-700 p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-500 rounded-xl flex items-center justify-center">
               <Clock className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-slate-800">Time & Date Format</h3>
-              <p className="text-slate-600 text-sm">Customize time and date display</p>
+              <h3 className="text-slate-50">Region & Time</h3>
+              <p className="text-slate-400 text-sm">
+                Used for schedules and due dates.
+              </p>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label>Time Zone</Label>
-              <Select defaultValue="est">
-                <SelectTrigger>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-slate-200">Time zone</Label>
+              <Select value={form.timezone} onValueChange={(v) => update({ timezone: v })}>
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-100">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pst">(GMT-8:00) Pacific Time</SelectItem>
-                  <SelectItem value="mst">(GMT-7:00) Mountain Time</SelectItem>
-                  <SelectItem value="cst">(GMT-6:00) Central Time</SelectItem>
-                  <SelectItem value="est">(GMT-5:00) Eastern Time</SelectItem>
-                  <SelectItem value="utc">(GMT+0:00) UTC</SelectItem>
-                  <SelectItem value="cet">(GMT+1:00) Central European Time</SelectItem>
-                  <SelectItem value="jst">(GMT+9:00) Japan Standard Time</SelectItem>
+                  <SelectItem value="Asia/Manila">Philippines (GMT+8)</SelectItem>
+                  <SelectItem value="Asia/Singapore">Singapore (GMT+8)</SelectItem>
+                  <SelectItem value="Europe/London">London (GMT+0)</SelectItem>
+                  <SelectItem value="America/New_York">New York (GMT-5)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-3">
-              <Label>Time Format</Label>
-              <Select defaultValue="12h">
-                <SelectTrigger>
+            <div className="space-y-2">
+              <Label className="text-slate-200">Time format</Label>
+              <Select
+                value={form.timeFormat}
+                onValueChange={(v: LanguageRegionState['timeFormat']) => update({ timeFormat: v })}
+              >
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-100">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="12h">12-hour (2:30 PM)</SelectItem>
-                  <SelectItem value="24h">24-hour (14:30)</SelectItem>
+                  <SelectItem value="12h">12-hour (3:30 PM)</SelectItem>
+                  <SelectItem value="24h">24-hour (15:30)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-3">
-              <Label>Date Format</Label>
-              <Select defaultValue="mdy">
-                <SelectTrigger>
+            <div className="space-y-2">
+              <Label className="text-slate-200">Date format</Label>
+              <Select value={form.dateFormat} onValueChange={(v) => update({ dateFormat: v })}>
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-100">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mdy">MM/DD/YYYY (11/02/2025)</SelectItem>
-                  <SelectItem value="dmy">DD/MM/YYYY (02/11/2025)</SelectItem>
-                  <SelectItem value="ymd">YYYY-MM-DD (2025-11-02)</SelectItem>
-                  <SelectItem value="long">November 2, 2025</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="auto-timezone">Auto-detect Time Zone</Label>
-                <p className="text-slate-500 text-sm">Automatically set based on your location</p>
-              </div>
-              <Switch id="auto-timezone" defaultChecked />
-            </div>
-          </div>
-        </div>
-
-        {/* Regional Settings */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
-              <CalendarIcon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-slate-800">Regional Preferences</h3>
-              <p className="text-slate-600 text-sm">Set regional formatting options</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label>Country/Region</Label>
-              <Select defaultValue="us">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="us">United States</SelectItem>
-                  <SelectItem value="uk">United Kingdom</SelectItem>
-                  <SelectItem value="ca">Canada</SelectItem>
-                  <SelectItem value="au">Australia</SelectItem>
-                  <SelectItem value="de">Germany</SelectItem>
-                  <SelectItem value="fr">France</SelectItem>
-                  <SelectItem value="es">Spain</SelectItem>
-                  <SelectItem value="jp">Japan</SelectItem>
-                  <SelectItem value="cn">China</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label>First Day of Week</Label>
-              <Select defaultValue="sunday">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sunday">Sunday</SelectItem>
-                  <SelectItem value="monday">Monday</SelectItem>
-                  <SelectItem value="saturday">Saturday</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Currency
-              </Label>
-              <Select defaultValue="usd">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="usd">USD - US Dollar ($)</SelectItem>
-                  <SelectItem value="eur">EUR - Euro (€)</SelectItem>
-                  <SelectItem value="gbp">GBP - British Pound (£)</SelectItem>
-                  <SelectItem value="jpy">JPY - Japanese Yen (¥)</SelectItem>
-                  <SelectItem value="cad">CAD - Canadian Dollar ($)</SelectItem>
-                  <SelectItem value="aud">AUD - Australian Dollar ($)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Number Format</Label>
-              <Select defaultValue="us">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="us">1,234.56</SelectItem>
-                  <SelectItem value="eu">1.234,56</SelectItem>
-                  <SelectItem value="space">1 234,56</SelectItem>
+                  <SelectItem value="MM/DD/YYYY">MM / DD / YYYY</SelectItem>
+                  <SelectItem value="DD/MM/YYYY">DD / MM / YYYY</SelectItem>
+                  <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -244,9 +212,12 @@ export function LanguageRegion({ onBack }: LanguageRegionProps) {
           <Button variant="outline" onClick={onBack}>
             Cancel
           </Button>
-          <Button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700">
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
+          <Button
+            disabled={saving || loading}
+            onClick={handleSave}
+            className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+          >
+            {saving ? 'Saving…' : 'Save Changes'}
           </Button>
         </div>
       </div>

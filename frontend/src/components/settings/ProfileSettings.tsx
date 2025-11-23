@@ -1,109 +1,274 @@
-import { ArrowLeft, Camera, Mail, Phone, MapPin, Calendar, Save } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+// frontend/src/components/settings/ProfileSettings.tsx
+import { useEffect, useState } from "react";
+import { ArrowLeft, User as UserIcon } from "lucide-react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import client from "../../api/client";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface ProfileSettingsProps {
   onBack: () => void;
 }
 
 export function ProfileSettings({ onBack }: ProfileSettingsProps) {
-  return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <button
-          onClick={onBack}
-          className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-slate-600" />
-        </button>
-        <div>
-          <h1 className="text-slate-800">Profile Settings</h1>
-          <p className="text-slate-600">Manage your personal information</p>
+  const { user, updateUser } = useAuth();
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [grade, setGrade] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState(""); // yyyy-mm-dd
+  const [address, setAddress] = useState("");
+  const [bio, setBio] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Load initial values from current user
+  useEffect(() => {
+    if (!user) return;
+    const name = user.name || "";
+    const parts = name.split(" ");
+    const fn = user.firstName ?? parts[0] ?? "";
+    const ln =
+      user.lastName ??
+      (parts.length > 1 ? parts.slice(1).join(" ") : "");
+
+    setFirstName(fn);
+    setLastName(ln);
+    setEmail(user.email || "");
+    setGrade(user.grade || "");
+    setPhoneNumber(user.phoneNumber || "");
+    setAddress(user.address || "");
+    setBio(user.bio || "");
+
+    if (user.dateOfBirth) {
+      const d = new Date(user.dateOfBirth);
+      if (!Number.isNaN(d.getTime())) {
+        const iso = d.toISOString().slice(0, 10); // yyyy-mm-dd
+        setDateOfBirth(iso);
+      }
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const fullName = `${firstName} ${lastName}`.trim() || user.name;
+
+      const payload: any = {
+        firstName,
+        lastName,
+        name: fullName,
+        email,
+        grade,
+        phoneNumber,
+        address,
+        bio,
+      };
+      if (dateOfBirth) {
+        payload.dateOfBirth = dateOfBirth; // backend converts to Date
+      }
+
+      const id = user.id || user._id;
+      const res = await client.put(`/users/${id}/profile`, payload);
+      const updated = res.data;
+
+      // update auth context + localStorage
+      updateUser(updated);
+
+      setSuccess("Profile updated successfully!");
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to save changes.";
+      setError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto py-10">
+        <Button variant="ghost" onClick={onBack} className="mb-4">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Settings
+        </Button>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center">
+          <p className="text-slate-600 dark:text-slate-300">
+            You need to be logged in to edit your profile.
+          </p>
         </div>
       </div>
+    );
+  }
 
-      {/* Content */}
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-        {/* Profile Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-8">
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
-                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white text-2xl">
-                  DM
-                </AvatarFallback>
-              </Avatar>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-slate-50 transition-colors">
-                <Camera className="w-4 h-4 text-slate-600" />
-              </button>
-            </div>
-            <div className="text-white">
-              <h2 className="mb-1">Daniel Mendoza</h2>
-              <p className="text-blue-100">Student</p>
-            </div>
+  const initials =
+    (firstName?.[0] || user.name?.[0] || "?") +
+    (lastName?.[0] ||
+      (user.name || "").split(" ")[1]?.[0] ||
+      "");
+
+  return (
+    <div className="max-w-4xl mx-auto py-10 space-y-6">
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 mb-4"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Settings
+      </button>
+
+      {/* Card */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        {/* Header banner */}
+        <div className="bg-gradient-to-r from-indigo-500 to-blue-600 p-8 text-white flex items-center gap-6">
+          <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-semibold">
+            {initials.toUpperCase()}
+          </div>
+          <div>
+            <h1 className="text-2xl mb-1">Profile Settings</h1>
+            <p className="text-white/80 text-sm">
+              Manage your personal information
+            </p>
           </div>
         </div>
 
-        {/* Form */}
-        <div className="p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
+        {/* Body */}
+        <div className="p-8 space-y-6">
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 text-sm text-red-700 dark:text-red-300">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 text-sm text-emerald-700 dark:text-emerald-300">
+              {success}
+            </div>
+          )}
+
+          {/* Name row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" defaultValue="Daniel" />
+              <Input
+                id="firstName"
+                className="mt-1"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
             </div>
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" defaultValue="Mendoza" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Email Address
-              </Label>
-              <Input id="email" type="email" defaultValue="danielmendoza0830@gmail.com" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                Phone Number
-              </Label>
-              <Input id="phone" type="tel" placeholder="+1 (555) 000-0000" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="birthday" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Date of Birth
-              </Label>
-              <Input id="birthday" type="date" defaultValue="2010-08-30" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="grade">Grade Level</Label>
-              <Input id="grade" placeholder="Grade 8" defaultValue="Grade 8" />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address" className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Address
-              </Label>
-              <Input id="address" placeholder="Enter your address" />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea id="bio" placeholder="Tell us about yourself..." rows={4} />
+              <Input
+                id="lastName"
+                className="mt-1"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-8">
-            <Button variant="outline" onClick={onBack}>
+          {/* Email / Phone */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                className="mt-1"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                placeholder="+1 (555) 000-0000"
+                className="mt-1"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* DOB / Grade */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="dob">Date of Birth</Label>
+              <Input
+                id="dob"
+                type="date"
+                className="mt-1"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="grade">Grade Level</Label>
+              <Input
+                id="grade"
+                className="mt-1"
+                placeholder="e.g. Grade 8"
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Address */}
+          <div>
+            <Label htmlFor="address">Address</Label>
+            <Input
+              id="address"
+              className="mt-1"
+              placeholder="Enter your address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          </div>
+
+          {/* Bio */}
+          <div>
+            <Label htmlFor="bio">Bio</Label>
+            <textarea
+              id="bio"
+              className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+              placeholder="Tell us about yourself..."
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={onBack}
+              disabled={saving}
+            >
               Cancel
             </Button>
-            <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700">
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-gradient-to-r from-indigo-500 to-blue-600"
+            >
+              {saving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>

@@ -1,12 +1,39 @@
 import mongoose from "mongoose";
 
+const questionSchema = new mongoose.Schema(
+  {
+    id: Number,
+    question: String,
+    type: { type: String },
+    options: [String],
+    correctAnswer: String,
+  },
+  { _id: false }
+);
+
 const activitySchema = new mongoose.Schema(
   {
+    id: Number,
     title: { type: String, required: true },
     description: String,
-    category: String,
-    difficulty: { type: String, enum: ["easy", "medium", "hard"], default: "easy" },
-    relatedLesson: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson" },
+    type: String,
+    subject: String,
+    dueDate: String,
+    dueTimestamp: Number,
+    status: { type: String, default: "pending" },
+    priority: String,
+    points: Number,
+    progress: Number,
+    totalQuestions: Number,
+    grade: String,
+    score: Number,
+    completedDate: String,
+    icon: String,
+    color: String,
+    relatedLessonId: Number,
+    isLocked: Boolean,
+    questions: [questionSchema],
+    published: { type: Boolean, default: true }
   },
   { timestamps: true }
 );

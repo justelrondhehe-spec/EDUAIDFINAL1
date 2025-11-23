@@ -1,13 +1,23 @@
-import { Calendar, Clock, CheckCircle, AlertCircle, Circle, Filter, Search, X, Lock } from 'lucide-react';
+// frontend/src/components/Activities.tsx
+import {
+  Calendar,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Circle,
+  Search,
+  X,
+  Lock,
+} from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { activitiesData, Activity } from '../data/activitiesData';
 import { useState, useMemo } from 'react';
 import { ActivityDetailModal } from './modals/ActivityDetailModal';
 import { useApp } from '../contexts/AppContext';
 import { Page } from '../App';
+import { useGlobalData } from '../contexts/GlobalDataContext';
 
 interface ActivitiesProps {
   onNavigate?: (page: Page) => void;
@@ -15,39 +25,99 @@ interface ActivitiesProps {
 
 export function Activities({ onNavigate }: ActivitiesProps = {}) {
   const { lessonProgress, activityScores } = useApp();
+  const { activities: serverActivities } = useGlobalData();
+
+  const effectiveActivities =
+    Array.isArray(serverActivities) && serverActivities.length > 0 ? serverActivities : [];
+
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'completed' | 'in-progress' | 'pending'>('all');
+  const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<
+    'all' | 'completed' | 'in-progress' | 'pending'
+  >('all');
 
-  // Process all activities including locked ones
+  // 🔹 Helper: map activity IDs to dedicated pages
+  const openActivityPage = (activity: any): boolean => {
+    if (!onNavigate) return false;
+    switch (activity.id) {
+      case 1:
+        onNavigate('activity-shape-color-sorter');
+        return true;
+      case 2:
+        onNavigate('activity-number-adventure');
+        return true;
+      case 3:
+        onNavigate('activity-reading-quiz');
+        return true;
+      case 4:
+        onNavigate('activity-science-lab');
+        return true;
+      case 5:
+        onNavigate('activity-music-challenge');
+        return true;
+      case 6:
+        onNavigate('activity-demo-game');
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  // Merge user progress into activities
   const allActivities = useMemo(() => {
-    return activitiesData.map(activity => {
-      const activityScore = activityScores[activity.id];
-      const relatedLesson = activity.relatedLessonId !== undefined ? lessonProgress[activity.relatedLessonId] : null;
-      
-      // Check if activity is locked
-      const isLocked = activity.relatedLessonId !== undefined && !relatedLesson?.completed;
-      
+    return effectiveActivities.map((activity: any) => {
+      const activityScore =
+        activityScores[activity.id] ||
+        activityScores[String(activity.id)] ||
+        (activity._id ? activityScores[String(activity._id)] : undefined);
+
+      const relatedLesson =
+        activity.relatedLessonId !== undefined && activity.relatedLessonId !== null
+          ? lessonProgress[activity.relatedLessonId] ||
+            lessonProgress[String(activity.relatedLessonId)]
+          : null;
+
+      const isLocked =
+        activity.relatedLessonId !== undefined &&
+        activity.relatedLessonId !== null &&
+        !relatedLesson?.completed;
+
       let status: 'pending' | 'in-progress' | 'completed' = 'pending';
       let grade = activity.grade;
       let score = activity.score;
       let dueDate: Date | null = null;
-      
+
       if (activityScore) {
         if (activityScore.completed) {
           status = 'completed';
-          const percentScore = Math.round((activityScore.score / activityScore.maxScore) * 100);
+          const percentScore = activityScore.maxScore
+            ? Math.round((activityScore.score / activityScore.maxScore) * 100)
+            : activityScore.score;
           score = percentScore;
-          grade = percentScore >= 95 ? 'A+' : percentScore >= 90 ? 'A' : percentScore >= 85 ? 'B+' : percentScore >= 80 ? 'B' : percentScore >= 70 ? 'C' : 'D';
+          grade =
+            percentScore >= 95
+              ? 'A+'
+              : percentScore >= 90
+              ? 'A'
+              : percentScore >= 85
+              ? 'B+'
+              : percentScore >= 80
+              ? 'B'
+              : percentScore >= 70
+              ? 'C'
+              : 'D';
+        } else {
+          status = 'in-progress';
         }
-        dueDate = activityScore.dueDate;
+        dueDate = activityScore.dueDate ?? null;
       } else if (relatedLesson?.completed && !isLocked) {
-        // Set due date to 1 day after lesson completion
-        dueDate = new Date(relatedLesson.completedDate!);
-        dueDate.setDate(dueDate.getDate() + 1);
+        if (relatedLesson.completedDate) {
+          dueDate = new Date(relatedLesson.completedDate);
+          dueDate.setDate(dueDate.getDate() + 1);
+        }
       }
-      
+
       return {
         ...activity,
         status,
@@ -57,17 +127,16 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
         isLocked,
       };
     });
-  }, [lessonProgress, activityScores]);
+  }, [lessonProgress, activityScores, effectiveActivities]);
 
-  // Filter activities - show all including locked
-  const availableActivities = allActivities;
-
-  // Filter activities based on search and filters
-  const filterActivities = (activities: Activity[]) => {
-    return activities.filter(activity => {
-      // Search filter
-      if (searchQuery && !activity.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !activity.description.toLowerCase().includes(searchQuery.toLowerCase())) {
+  const filterActivities = (activities: any[]) => {
+    const query = searchQuery.toLowerCase();
+    return activities.filter((activity) => {
+      if (
+        query &&
+        !((activity.title || '').toLowerCase().includes(query) ||
+          (activity.description || '').toLowerCase().includes(query))
+      ) {
         return false;
       }
       return true;
@@ -75,42 +144,41 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
   };
 
   const pendingActivities = filterActivities(
-    availableActivities.filter(a => a.status === 'pending' || a.status === 'in-progress')
+    allActivities.filter((a) => a.status === 'pending' || a.status === 'in-progress')
   );
-  
   const completedActivitiesList = filterActivities(
-    availableActivities.filter(a => a.status === 'completed')
+    allActivities.filter((a) => a.status === 'completed')
   );
 
-  const completedCount = availableActivities.filter(a => a.status === 'completed').length;
-  const inProgressCount = availableActivities.filter(a => a.status === 'in-progress').length;
-  const pendingCount = availableActivities.filter(a => a.status === 'pending').length;
+  const completedCount = allActivities.filter((a) => a.status === 'completed').length;
+  const inProgressCount = allActivities.filter((a) => a.status === 'in-progress').length;
+  const pendingCount = allActivities.filter((a) => a.status === 'pending').length;
 
   const stats = [
-    { 
-      label: 'Total Activities', 
-      value: availableActivities.length.toString(), 
+    {
+      label: 'Total Activities',
+      value: allActivities.length.toString(),
       icon: 'all' as const,
       color: 'from-blue-500 to-blue-600',
       filter: 'all' as const,
     },
-    { 
-      label: 'Completed', 
-      value: completedCount.toString(), 
+    {
+      label: 'Completed',
+      value: completedCount.toString(),
       icon: 'completed' as const,
       color: 'from-emerald-500 to-emerald-600',
       filter: 'completed' as const,
     },
-    { 
-      label: 'In Progress', 
-      value: inProgressCount.toString(), 
+    {
+      label: 'In Progress',
+      value: inProgressCount.toString(),
       icon: 'in-progress' as const,
       color: 'from-yellow-500 to-orange-500',
       filter: 'in-progress' as const,
     },
-    { 
-      label: 'Pending', 
-      value: pendingCount.toString(), 
+    {
+      label: 'Pending',
+      value: pendingCount.toString(),
       icon: 'pending' as const,
       color: 'from-red-500 to-pink-600',
       filter: 'pending' as const,
@@ -124,9 +192,8 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
       case 'in-progress':
         return <Clock className="w-5 h-5 text-blue-500" />;
       case 'pending':
-        return <Circle className="w-5 h-5 text-slate-400" />;
       default:
-        return null;
+        return <Circle className="w-5 h-5 text-slate-400" />;
     }
   };
 
@@ -137,7 +204,11 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
       case 'medium':
         return <Badge className="bg-yellow-500 hover:bg-yellow-600">Medium</Badge>;
       case 'low':
-        return <Badge variant="outline" className="border-slate-300 dark:border-slate-600">Low</Badge>;
+        return (
+          <Badge variant="outline" className="border-slate-300 dark:border-slate-600">
+            Low
+          </Badge>
+        );
       default:
         return null;
     }
@@ -145,18 +216,13 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
 
   const handleStatClick = (filter: 'all' | 'completed' | 'in-progress' | 'pending') => {
     setSelectedFilter(filter);
-    // Switch to appropriate tab
-    if (filter === 'completed') {
-      setSelectedTab('completed');
-    } else {
-      setSelectedTab('pending');
-    }
+    if (filter === 'completed') setSelectedTab('completed');
+    else setSelectedTab('pending');
   };
 
-  // Get activities to display based on selected filter
-  const getFilteredActivities = (baseActivities: Activity[]) => {
+  const getFilteredActivities = (baseActivities: any[]) => {
     if (selectedFilter === 'all') return baseActivities;
-    return baseActivities.filter(a => a.status === selectedFilter);
+    return baseActivities.filter((a) => a.status === selectedFilter);
   };
 
   const displayPendingActivities = getFilteredActivities(pendingActivities);
@@ -170,7 +236,7 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
         <p className="text-slate-600 dark:text-slate-400">Track and complete your assignments</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <button
@@ -194,7 +260,7 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
         ))}
       </div>
 
-      {/* Search and Filter */}
+      {/* Search */}
       <div className="flex gap-4">
         <div className="flex-1 relative">
           <Input
@@ -220,7 +286,9 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
         <div className="flex items-center gap-2">
           <span className="text-slate-600 dark:text-slate-400 text-sm">Filtering by:</span>
           <Badge className="bg-blue-500">
-            {selectedFilter === 'in-progress' ? 'In Progress' : selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1)}
+            {selectedFilter === 'in-progress'
+              ? 'In Progress'
+              : selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1)}
           </Badge>
           <button
             onClick={() => setSelectedFilter('all')}
@@ -232,41 +300,58 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
       )}
 
       {/* Tabs */}
-      <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as 'pending' | 'completed')} className="w-full">
+      <Tabs
+        value={selectedTab}
+        onValueChange={(v) => setSelectedTab(v as 'pending' | 'completed')}
+        className="w-full"
+      >
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="pending">Pending ({pendingActivities.length})</TabsTrigger>
           <TabsTrigger value="completed">Completed ({completedActivitiesList.length})</TabsTrigger>
         </TabsList>
 
+        {/* Pending / In-progress */}
         <TabsContent value="pending" className="mt-6 space-y-4">
-          {availableActivities.length === 0 ? (
+          {allActivities.length === 0 ? (
             <div className="text-center py-12">
               <div className="flex justify-center mb-4">
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                   <Lock className="w-10 h-10 text-white" />
                 </div>
               </div>
-              <div className="text-slate-800 dark:text-slate-200 mb-2">No Activities Available Yet</div>
+              <div className="text-slate-800 dark:text-slate-200 mb-2">
+                No Activities Available Yet
+              </div>
               <div className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                Complete lessons to unlock related activities! Start with the <span className="text-pink-600 dark:text-pink-400">Shapes & Colors</span> lesson to unlock your first activity.
+                Complete lessons to unlock related activities!
               </div>
             </div>
           ) : displayPendingActivities.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-slate-400 dark:text-slate-500 mb-2">No pending activities found</div>
-              <div className="text-slate-600 dark:text-slate-400">Try adjusting your search or filters</div>
+              <div className="text-slate-400 dark:text-slate-500 mb-2">
+                No pending activities found
+              </div>
+              <div className="text-slate-600 dark:text-slate-400">
+                Try adjusting your search or filters
+              </div>
             </div>
           ) : (
-            displayPendingActivities.map((activity) => (
+            displayPendingActivities.map((activity: any) => (
               <div
-                key={activity.id}
+                key={activity._id ?? activity.id}
                 onClick={() => !activity.isLocked && setSelectedActivity(activity)}
-                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-all ${activity.isLocked ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl cursor-pointer'}`}
+                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-all ${
+                  activity.isLocked ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl cursor-pointer'
+                }`}
               >
                 <div className="p-6">
                   <div className="flex items-start gap-6">
                     {/* Icon */}
-                    <div className={`w-16 h-16 bg-gradient-to-br ${activity.color} rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}>
+                    <div
+                      className={`w-16 h-16 bg-gradient-to-br ${
+                        activity.color || 'from-pink-500 to-rose-600'
+                      } rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}
+                    >
                       {activity.isLocked && (
                         <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
                           <Lock className="w-8 h-8 text-white" />
@@ -287,10 +372,16 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                             {activity.description}
                           </p>
                           <div className="flex items-center gap-3 flex-wrap">
-                            <Badge variant="outline" className="border-slate-300 dark:border-slate-600">
+                            <Badge
+                              variant="outline"
+                              className="border-slate-300 dark:border-slate-600"
+                            >
                               {activity.type}
                             </Badge>
-                            <Badge variant="outline" className="border-slate-300 dark:border-slate-600">
+                            <Badge
+                              variant="outline"
+                              className="border-slate-300 dark:border-slate-600"
+                            >
                               {activity.subject}
                             </Badge>
                             {getPriorityBadge(activity.priority)}
@@ -298,7 +389,7 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                         </div>
                       </div>
 
-                      {/* Progress Bar */}
+                      {/* Progress */}
                       {activity.status === 'in-progress' && activity.totalQuestions && (
                         <div className="mb-4">
                           <div className="flex items-center justify-between text-sm mb-2">
@@ -306,14 +397,21 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                               Progress: {activity.progress}/{activity.totalQuestions} questions
                             </span>
                             <span className="text-slate-800 dark:text-slate-200">
-                              {Math.round((activity.progress! / activity.totalQuestions) * 100)}%
+                              {Math.round(
+                                (activity.progress! / activity.totalQuestions) * 100
+                              )}
+                              %
                             </span>
                           </div>
                           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                             <div
-                              className={`bg-gradient-to-r ${activity.color} h-2 rounded-full transition-all`}
-                              style={{ width: `${(activity.progress! / activity.totalQuestions) * 100}%` }}
-                            ></div>
+                              className={`bg-gradient-to-r ${
+                                activity.color || 'from-blue-500 to-indigo-600'
+                              } h-2 rounded-full`}
+                              style={{
+                                width: `${(activity.progress! / activity.totalQuestions) * 100}%`,
+                              }}
+                            />
                           </div>
                         </div>
                       )}
@@ -339,25 +437,34 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                           )}
                           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                             <span className="text-yellow-500">⭐</span>
-                            <span>{activity.points} points</span>
+                            <span>{activity.points}</span>
                           </div>
                         </div>
-                        <Button 
-                          className={`bg-gradient-to-r ${activity.color}`}
-                          disabled={activity.isLocked}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (activity.isLocked) return;
-                            // Navigate to the activity game if it's the Shapes & Colors Challenge
-                            if (activity.id === 1 && onNavigate) {
-                              onNavigate('activity-shape-color-sorter');
-                            } else {
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            className={`bg-gradient-to-r ${
+                              activity.color || 'from-blue-500 to-indigo-600'
+                            }`}
+                            disabled={activity.isLocked}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (activity.isLocked) return;
+
+                              // Try to open dedicated activity page first
+                              if (openActivityPage(activity)) return;
+
+                              // Fallback to detail modal
                               setSelectedActivity(activity);
-                            }
-                          }}
-                        >
-                          {activity.isLocked ? 'Locked' : activity.status === 'in-progress' ? 'Continue' : 'Start Activity'}
-                        </Button>
+                            }}
+                          >
+                            {activity.isLocked
+                              ? 'Locked'
+                              : activity.status === 'in-progress'
+                              ? 'Continue'
+                              : 'Start Activity'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -367,23 +474,32 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
           )}
         </TabsContent>
 
+        {/* Completed */}
         <TabsContent value="completed" className="mt-6 space-y-4">
           {displayCompletedActivities.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-slate-400 dark:text-slate-500 mb-2">No completed activities found</div>
-              <div className="text-slate-600 dark:text-slate-400">Complete some activities to see them here</div>
+              <div className="text-slate-400 dark:text-slate-500 mb-2">
+                No completed activities found
+              </div>
+              <div className="text-slate-600 dark:text-slate-400">
+                Complete some activities to see them here
+              </div>
             </div>
           ) : (
-            displayCompletedActivities.map((activity) => (
+            displayCompletedActivities.map((activity: any) => (
               <div
-                key={activity.id}
+                key={activity._id ?? activity.id}
                 onClick={() => setSelectedActivity(activity)}
                 className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all cursor-pointer"
               >
                 <div className="p-6">
                   <div className="flex items-start gap-6">
                     {/* Icon */}
-                    <div className={`w-16 h-16 bg-gradient-to-br ${activity.color} rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}>
+                    <div
+                      className={`w-16 h-16 bg-gradient-to-br ${
+                        activity.color || 'from-blue-500 to-indigo-600'
+                      } rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}
+                    >
                       {activity.icon}
                       <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
                         <CheckCircle className="w-5 h-5 text-white" />
@@ -394,15 +510,23 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 className="text-slate-800 dark:text-slate-100 mb-2">{activity.title}</h3>
+                          <h3 className="text-slate-800 dark:text-slate-100 mb-2">
+                            {activity.title}
+                          </h3>
                           <p className="text-slate-600 dark:text-slate-400 text-sm mb-3">
                             {activity.description}
                           </p>
                           <div className="flex items-center gap-3 flex-wrap">
-                            <Badge variant="outline" className="border-slate-300 dark:border-slate-600">
+                            <Badge
+                              variant="outline"
+                              className="border-slate-300 dark:border-slate-600"
+                            >
                               {activity.type}
                             </Badge>
-                            <Badge variant="outline" className="border-slate-300 dark:border-slate-600">
+                            <Badge
+                              variant="outline"
+                              className="border-slate-300 dark:border-slate-600"
+                            >
                               {activity.subject}
                             </Badge>
                             <Badge className="bg-emerald-500 hover:bg-emerald-600">
@@ -412,16 +536,24 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                         </div>
                       </div>
 
-                      {/* Score Display */}
+                      {/* Score */}
                       <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-xl p-4 mb-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">Your Score</div>
-                            <div className="text-2xl text-emerald-600 dark:text-emerald-400">{activity.score}%</div>
+                            <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">
+                              Your Score
+                            </div>
+                            <div className="text-2xl text-emerald-600 dark:text-emerald-400">
+                              {activity.score}%
+                            </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">Points Earned</div>
-                            <div className="text-xl text-slate-800 dark:text-slate-200">+{activity.points}</div>
+                            <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">
+                              Points Earned
+                            </div>
+                            <div className="text-xl text-slate-800 dark:text-slate-200">
+                              +{activity.points}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -432,8 +564,8 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                           Completed {activity.completedDate}
                         </div>
                         <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -442,17 +574,13 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                           >
                             View Feedback
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Navigate to the activity game if it's the Shapes & Colors Challenge
-                              if (activity.id === 1 && onNavigate) {
-                                onNavigate('activity-shape-color-sorter');
-                              } else {
-                                setSelectedActivity(activity);
-                              }
+                              if (openActivityPage(activity)) return;
+                              setSelectedActivity(activity);
                             }}
                           >
                             Retake
@@ -468,18 +596,19 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
         </TabsContent>
       </Tabs>
 
-      {/* Activity Detail Modal */}
+      {/* Activity Modal */}
       {selectedActivity && (
         <ActivityDetailModal
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
           onStart={() => {
-            // Navigate to the activity game if it's the Shapes & Colors Challenge
-            if (selectedActivity.id === 1 && onNavigate) {
-              onNavigate('activity-shape-color-sorter');
-            } else {
-              alert(`Starting activity: ${selectedActivity.title}`);
+            if (!selectedActivity) return;
+            // Prefer dedicated activity page
+            if (openActivityPage(selectedActivity)) {
+              setSelectedActivity(null);
+              return;
             }
+            // Fallback (should rarely be needed now)
             setSelectedActivity(null);
           }}
         />

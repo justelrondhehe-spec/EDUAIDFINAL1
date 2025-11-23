@@ -1,9 +1,17 @@
+// backend/routes/authRoutes.js
 import express from "express";
-import { signupUser, loginUser } from "../controllers/authController.js";
+import { login, register, getMe } from "../controllers/authController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/signup", signupUser);
-router.post("/login", loginUser);
+// REGISTER
+router.post("/register", register);
+
+// LOGIN
+router.post("/login", login);
+
+// CURRENT USER (used by frontend auth.me())
+router.get("/me", protect, getMe);
 
 export default router;

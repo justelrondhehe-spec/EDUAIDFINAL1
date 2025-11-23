@@ -1,246 +1,190 @@
-import { ArrowLeft, Shield, Lock, Eye, Key, Smartphone, AlertTriangle, Save } from 'lucide-react';
+// frontend/src/components/settings/PrivacySecuritySettings.tsx
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Shield, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import client from '../../api/client';
+import { useAuth } from '../../contexts/AuthContext';
 
-interface PrivacySecurityProps {
+interface PrivacySecuritySettingsProps {
   onBack: () => void;
 }
 
+interface PrivacyState {
+  allowProfileSuggestions: boolean;
+  showAchievementsOnProfile: boolean;
+  shareAnonymousUsageData: boolean;
+  loginAlerts: boolean;
+  twoFactorEnabled: boolean;
+}
+
+const DEFAULT_STATE: PrivacyState = {
+  allowProfileSuggestions: false,
+  showAchievementsOnProfile: true,
+  shareAnonymousUsageData: true,
+  loginAlerts: true,
+  twoFactorEnabled: false,
+};
+
 export function PrivacySecurity({ onBack }: PrivacySecurityProps) {
+  const { user } = useAuth();
+  const userId = user?._id || user?.id || user?.userId;
+  const [form, setForm] = useState<PrivacyState>(DEFAULT_STATE);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await client.get(`/users/${userId}/privacy-settings`);
+        if (cancelled) return;
+        setForm({ ...DEFAULT_STATE, ...(res.data || {}) });
+      } catch {
+        setForm(DEFAULT_STATE);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const update = (patch: Partial<PrivacyState>) =>
+    setForm((prev) => ({ ...prev, ...patch }));
+
+  const handleSave = async () => {
+    if (!userId) return;
+    setSaving(true);
+    try {
+      await client.put(`/users/${userId}/privacy-settings`, form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
-          className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+          className="w-10 h-10 rounded-xl bg-white/5 border border-slate-700 flex items-center justify-center hover:bg-white/10 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 text-slate-600" />
+          <ArrowLeft className="w-5 h-5 text-slate-100" />
         </button>
         <div>
-          <h1 className="text-slate-800">Privacy & Security</h1>
-          <p className="text-slate-600">Protect your account and data</p>
+          <h1 className="text-slate-50">Privacy & Security</h1>
+          <p className="text-slate-400">Protect your account</p>
         </div>
       </div>
 
-      {/* Content */}
       <div className="space-y-6">
-        {/* Password & Authentication */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+        {/* Privacy */}
+        <div className="bg-slate-900/60 rounded-2xl border border-slate-700 p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl flex items-center justify-center">
-              <Lock className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-slate-800">Password & Authentication</h3>
-              <p className="text-slate-600 text-sm">Manage your login credentials</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
-              <Input id="current-password" type="password" placeholder="Enter current password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
-              <Input id="new-password" type="password" placeholder="Enter new password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm New Password</Label>
-              <Input id="confirm-password" type="password" placeholder="Confirm new password" />
-            </div>
-            <Button variant="outline" className="w-full">
-              <Key className="w-4 h-4 mr-2" />
-              Change Password
-            </Button>
-          </div>
-        </div>
-
-        {/* Two-Factor Authentication */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl flex items-center justify-center">
-              <Smartphone className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-slate-800">Two-Factor Authentication</h3>
-              <p className="text-slate-600 text-sm">Add an extra layer of security</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl">
-              <div className="flex-1">
-                <Label htmlFor="2fa-enable">Enable Two-Factor Authentication</Label>
-                <p className="text-slate-600 text-sm">Require a verification code when logging in</p>
-              </div>
-              <Switch id="2fa-enable" />
-            </div>
-
-            <div className="space-y-3">
-              <Label>Authentication Method</Label>
-              <Select defaultValue="app">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="app">Authenticator App</SelectItem>
-                  <SelectItem value="sms">SMS</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button variant="outline" className="w-full">
-              <Shield className="w-4 h-4 mr-2" />
-              Configure 2FA
-            </Button>
-          </div>
-        </div>
-
-        {/* Privacy Settings */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl flex items-center justify-center">
-              <Eye className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-slate-800">Privacy Settings</h3>
-              <p className="text-slate-600 text-sm">Control who can see your information</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label>Profile Visibility</Label>
-              <Select defaultValue="guardians">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="students">Students & Teachers</SelectItem>
-                  <SelectItem value="guardians">Teachers & Guardians Only</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="show-email">Show Email Address</Label>
-                <p className="text-slate-500 text-sm">Display your email on your profile</p>
-              </div>
-              <Switch id="show-email" />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="show-progress">Show Progress to Others</Label>
-                <p className="text-slate-500 text-sm">Let other students see your progress</p>
-              </div>
-              <Switch id="show-progress" />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="show-achievements">Public Achievements</Label>
-                <p className="text-slate-500 text-sm">Display your achievements and badges</p>
-              </div>
-              <Switch id="show-achievements" defaultChecked />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="show-activity">Activity Status</Label>
-                <p className="text-slate-500 text-sm">Show when you're online</p>
-              </div>
-              <Switch id="show-activity" defaultChecked />
-            </div>
-          </div>
-        </div>
-
-        {/* Data & Privacy */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-red-500 rounded-xl flex items-center justify-center">
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-slate-800">Data Management</h3>
-              <p className="text-slate-600 text-sm">Control your data and privacy</p>
+              <h3 className="text-slate-50">Privacy</h3>
+              <p className="text-slate-400 text-sm">
+                Control how your information is used inside EduAid.
+              </p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <Button variant="outline" className="w-full justify-start">
-              Download Your Data
-              <span className="ml-auto text-slate-500 text-sm">Export all your information</span>
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              View Activity Log
-              <span className="ml-auto text-slate-500 text-sm">See your account activity</span>
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Connected Apps
-              <span className="ml-auto text-slate-500 text-sm">Manage third-party access</span>
-            </Button>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <Label>Profile suggestions</Label>
+                <p className="text-slate-400 text-sm">
+                  Allow EduAid to suggest your profile to teachers you&apos;re connected with.
+                </p>
+              </div>
+              <Switch
+                checked={form.allowProfileSuggestions}
+                onCheckedChange={(v) => update({ allowProfileSuggestions: v })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <Label>Show achievements on profile</Label>
+                <p className="text-slate-400 text-sm">
+                  Let teachers and guardians see your badges and milestones.
+                </p>
+              </div>
+              <Switch
+                checked={form.showAchievementsOnProfile}
+                onCheckedChange={(v) => update({ showAchievementsOnProfile: v })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <Label>Share anonymous usage data</Label>
+                <p className="text-slate-400 text-sm">
+                  Help improve EduAid by sharing anonymous usage statistics.
+                </p>
+              </div>
+              <Switch
+                checked={form.shareAnonymousUsageData}
+                onCheckedChange={(v) => update({ shareAnonymousUsageData: v })}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Session Management */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h3 className="text-slate-800 mb-4">Active Sessions</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl">
-              <div>
-                <div className="text-slate-800 mb-1">Current Session</div>
-                <div className="text-slate-500 text-sm">Windows • Chrome • New York, NY</div>
-              </div>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl">
-              <div>
-                <div className="text-slate-800 mb-1">Mobile Device</div>
-                <div className="text-slate-500 text-sm">iPhone • Safari • Last active 2 hours ago</div>
-              </div>
-              <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
-                Revoke
-              </Button>
-            </div>
-          </div>
-          <Button variant="outline" className="w-full mt-4">
-            Sign Out All Other Sessions
-          </Button>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
+        {/* Security */}
+        <div className="bg-slate-900/60 rounded-2xl border border-slate-700 p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-500 rounded-xl flex items-center justify-center">
+              <Lock className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-red-900">Danger Zone</h3>
-              <p className="text-red-700 text-sm">Irreversible actions</p>
+              <h3 className="text-slate-50">Security</h3>
+              <p className="text-slate-400 text-sm">Keep your account safe.</p>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Button variant="outline" className="w-full justify-start border-red-300 text-red-700 hover:bg-red-100">
-              Deactivate Account
-              <span className="ml-auto text-sm">Temporarily disable your account</span>
-            </Button>
-            <Button variant="outline" className="w-full justify-start border-red-300 text-red-700 hover:bg-red-100">
-              Delete Account
-              <span className="ml-auto text-sm">Permanently delete all your data</span>
-            </Button>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <Label>Login alerts</Label>
+                <p className="text-slate-400 text-sm">
+                  Get an email when someone logs in from a new device.
+                </p>
+              </div>
+              <Switch
+                checked={form.loginAlerts}
+                onCheckedChange={(v) => update({ loginAlerts: v })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between opacity-70">
+              <div className="flex-1">
+                <Label>Two-factor authentication</Label>
+                <p className="text-slate-400 text-sm">
+                  Additional code when logging in. (Prototype – not fully enabled yet.)
+                </p>
+              </div>
+              <Switch
+                checked={form.twoFactorEnabled}
+                onCheckedChange={(v) => update({ twoFactorEnabled: v })}
+              />
+            </div>
+
+            <div className="mt-2 flex items-start gap-2 text-xs text-amber-400">
+              <AlertTriangle className="w-4 h-4 mt-[2px]" />
+              <p>
+                For deployment, you can later connect these options to real security features
+                like email alerts or an authenticator app.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -249,9 +193,12 @@ export function PrivacySecurity({ onBack }: PrivacySecurityProps) {
           <Button variant="outline" onClick={onBack}>
             Cancel
           </Button>
-          <Button className="bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700">
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
+          <Button
+            disabled={saving || loading}
+            onClick={handleSave}
+            className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700"
+          >
+            {saving ? 'Saving…' : 'Save Changes'}
           </Button>
         </div>
       </div>

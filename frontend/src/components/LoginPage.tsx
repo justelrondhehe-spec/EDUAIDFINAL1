@@ -1,9 +1,10 @@
+// frontend/src/components/LoginPage.tsx
 import { useState } from 'react';
 import { BookOpen, Mail, Lock, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { useAuth } from '../contexts/AuthContext';
+import useAuth from '../hooks/useAuth';
 import { ThemeToggle } from './ThemeToggle';
 
 interface LoginPageProps {
@@ -26,9 +27,10 @@ export function LoginPage({ onNavigateToHome, onNavigateToSignup }: LoginPagePro
     setIsLoading(true);
 
     try {
-      await login(email, password, isAdminLogin ? 'admin' : 'student');
-    } catch (err) {
-      setError('Invalid email or password');
+      await login(email, password);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Invalid email or password';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
