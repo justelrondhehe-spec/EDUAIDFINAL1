@@ -1,11 +1,28 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// frontend/src/contexts/AccessibilityContext.tsx
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+
+type FontStyle = "default" | "dyslexic" | "sans" | "mono";
+type ColorBlindMode = "none" | "protanopia" | "deuteranopia" | "tritanopia";
 
 interface AccessibilitySettings {
   darkMode: boolean;
-  textSize: number;
-  fontStyle: 'default' | 'dyslexic' | 'sans' | 'mono';
+  textSize: number; // 0–100 slider, mapped to ~85–150%
+  fontStyle: FontStyle;
   highContrast: boolean;
   reduceAnimations: boolean;
+  readingRuler: boolean;
+  colorBlindMode: ColorBlindMode;
+  textToSpeech: boolean;
+  screenReaderHints: boolean;
+  keyboardNavigation: boolean;
+  focusOutline: boolean;
+  voiceSpeed: number; // 0–100
 }
 
 interface AccessibilityContextType {
@@ -15,89 +32,108 @@ interface AccessibilityContextType {
   toggleDarkMode: () => void;
 }
 
-const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined);
+const AccessibilityContext = createContext<
+  AccessibilityContextType | undefined
+>(undefined);
+
+const DEFAULT_SETTINGS: AccessibilitySettings = {
+  darkMode: false,
+  textSize: 50,
+  fontStyle: "default",
+  highContrast: false,
+  reduceAnimations: false,
+  readingRuler: false,
+  colorBlindMode: "none",
+  textToSpeech: false,
+  screenReaderHints: false,
+  keyboardNavigation: true,
+  focusOutline: false,
+  voiceSpeed: 50,
+};
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AccessibilitySettings>(() => {
-    // Load from localStorage if available
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('accessibility-settings');
-      if (saved) {
-        return JSON.parse(saved);
-      }
+    if (typeof window === "undefined") return DEFAULT_SETTINGS;
+    try {
+      const raw = localStorage.getItem("accessibility-settings");
+      if (!raw) return DEFAULT_SETTINGS;
+      const parsed = JSON.parse(raw);
+      // merge so new fields get defaults
+      return { ...DEFAULT_SETTINGS, ...parsed };
+    } catch {
+      return DEFAULT_SETTINGS;
     }
-    return {
-      darkMode: false,
-      textSize: 50,
-      fontStyle: 'default' as const,
-      highContrast: false,
-      reduceAnimations: false,
-    };
   });
 
   useEffect(() => {
-    // Save to localStorage
-    localStorage.setItem('accessibility-settings', JSON.stringify(settings));
-
-    // Apply dark mode
-    if (settings.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    // Persist to localStorage
+    try {
+      localStorage.setItem("accessibility-settings", JSON.stringify(settings));
+    } catch {
+      // ignore
     }
 
-    // Apply text size (scale from 0-100 to 0.85-1.5)
-    // This only scales text, not the whole page
-    const scale = 0.85 + (settings.textSize / 100) * 0.65;
-    document.documentElement.style.setProperty('--text-scale', scale.toString());
-    
-    // Also set individual text sizes
-    document.documentElement.style.setProperty('--text-xs', `${0.75 * scale}rem`);
-    document.documentElement.style.setProperty('--text-sm', `${0.875 * scale}rem`);
-    document.documentElement.style.setProperty('--text-base', `${1 * scale}rem`);
-    document.documentElement.style.setProperty('--text-lg', `${1.125 * scale}rem`);
-    document.documentElement.style.setProperty('--text-xl', `${1.25 * scale}rem`);
-    document.documentElement.style.setProperty('--text-2xl', `${1.5 * scale}rem`);
+    const root = document.documentElement;
 
-    // Apply font style
-    const fontMap = {
+    // Dark mode
+    if (settings.darkMode) root.classList.add("dark");
+    else root.classList.remove("dark");
+
+    // Text size scale: 0–100 → 0.85–1.5
+    const scale = 0.85 + (settings.textSize / 100) * 0.65;
+    root.style.setProperty("--text-scale", scale.toString());
+    root.style.setProperty("--text-xs", `${0.75 * scale}rem`);
+    root.style.setProperty("--text-sm", `${0.875 * scale}rem`);
+    root.style.setProperty("--text-base", `${1 * scale}rem`);
+    root.style.setProperty("--text-lg", `${1.125 * scale}rem`);
+    root.style.setProperty("--text-xl", `${1.25 * scale}rem`);
+    root.style.setProperty("--text-2xl", `${1.5 * scale}rem`);
+
+    // Font family
+    const fontMap: Record<FontStyle, string> = {
       default: 'system-ui, -apple-system, sans-serif',
       dyslexic: 'OpenDyslexic, "Comic Sans MS", sans-serif',
       sans: '"Inter", "Helvetica Neue", sans-serif',
       mono: '"JetBrains Mono", "Courier New", monospace',
     };
-    document.documentElement.style.setProperty('--font-family', fontMap[settings.fontStyle]);
+    root.style.setProperty("--font-family", fontMap[settings.fontStyle]);
 
-    // Apply high contrast
-    if (settings.highContrast) {
-      document.documentElement.classList.add('high-contrast');
-    } else {
-      document.documentElement.classList.remove('high-contrast');
-    }
+    // High contrast
+    if (settings.highContrast) root.classList.add("high-contrast");
+    else root.classList.remove("high-contrast");
 
-    // Apply reduce animations
-    if (settings.reduceAnimations) {
-      document.documentElement.classList.add('reduce-animations');
-    } else {
-      document.documentElement.classList.remove('reduce-animations');
-    }
+    // Reduce animations
+    if (settings.reduceAnimations) root.classList.add("reduce-animations");
+    else root.classList.remove("reduce-animations");
+
+    // Color blindness mode (hook for CSS)
+    root.dataset.colorBlindMode = settings.colorBlindMode;
+
+    // Keyboard navigation & focus outline hooks
+    if (settings.keyboardNavigation) root.classList.add("keyboard-nav");
+    else root.classList.remove("keyboard-nav");
+
+    if (settings.focusOutline) root.classList.add("focus-outline-strong");
+    else root.classList.remove("focus-outline-strong");
   }, [settings]);
 
   const updateSettings = (updates: Partial<AccessibilitySettings>) => {
-    setSettings(prev => ({ ...prev, ...updates }));
+    setSettings((prev) => ({ ...prev, ...updates }));
   };
 
   const toggleDarkMode = () => {
-    setSettings(prev => ({ ...prev, darkMode: !prev.darkMode }));
+    setSettings((prev) => ({ ...prev, darkMode: !prev.darkMode }));
   };
 
   return (
-    <AccessibilityContext.Provider value={{ 
-      settings, 
-      updateSettings,
-      isDarkMode: settings.darkMode,
-      toggleDarkMode
-    }}>
+    <AccessibilityContext.Provider
+      value={{
+        settings,
+        updateSettings,
+        isDarkMode: settings.darkMode,
+        toggleDarkMode,
+      }}
+    >
       {children}
     </AccessibilityContext.Provider>
   );
@@ -106,7 +142,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
 export function useAccessibility() {
   const context = useContext(AccessibilityContext);
   if (!context) {
-    throw new Error('useAccessibility must be used within AccessibilityProvider');
+    throw new Error("useAccessibility must be used within AccessibilityProvider");
   }
   return context;
 }

@@ -289,7 +289,7 @@ router.put("/:id/notification-settings", async (req, res) => {
 
 /**
  * PUT /api/users/:id/progress
- * Merge / update lessonProgress and activityScores for a user
+ * Merge / update lessonProgress and activityScores for a user.
  */
 router.put("/:id/progress", async (req, res) => {
   try {
@@ -299,32 +299,43 @@ router.put("/:id/progress", async (req, res) => {
     const user = await User.findById(id).exec();
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const prevLessonProgress = user.lessonProgress
-      ? user.lessonProgress.toObject
-        ? user.lessonProgress.toObject()
-        : { ...user.lessonProgress }
-      : {};
-    const prevActivityScores = user.activityScores
-      ? user.activityScores.toObject
-        ? user.activityScores.toObject()
-        : { ...user.activityScores }
-      : {};
+    // --- capture previous state BEFORE we mutate anything ---
+    const prevLessonProgress =
+      (user.lessonProgress &&
+        (user.lessonProgress.toObject
+          ? user.lessonProgress.toObject()
+          : { ...user.lessonProgress })) ||
+      {};
 
+    const prevActivityScores =
+      (user.activityScores &&
+        (user.activityScores.toObject
+          ? user.activityScores.toObject()
+          : { ...user.activityScores })) ||
+      {};
+
+    // Ensure objects exist
     user.lessonProgress = user.lessonProgress || {};
     user.activityScores = user.activityScores || {};
 
+    // ---- merge lessonProgress ----
     if (patch.lessonProgress && typeof patch.lessonProgress === "object") {
       Object.entries(patch.lessonProgress).forEach(([k, v]) => {
+        const key = k;
         const incoming = v || {};
-        const existing = user.lessonProgress[k];
+        const existing = user.lessonProgress[key];
 
-        user.lessonProgress[k] = {
+        user.lessonProgress[key] = {
           ...(existing && existing.toObject ? existing.toObject() : existing || {}),
           ...incoming,
         };
       });
+
+      // VERY IMPORTANT for Mixed type:
+      user.markModified("lessonProgress");
     }
 
+    // ---- merge activityScores ----
     if (patch.activityScores && typeof patch.activityScores === "object") {
       Object.entries(patch.activityScores).forEach(([k, v]) => {
         const incoming = v || {};
@@ -335,8 +346,12 @@ router.put("/:id/progress", async (req, res) => {
           ...incoming,
         };
       });
+
+      // mark as modified as well
+      user.markModified("activityScores");
     }
 
+    // --- detect newly completed lessons (for email) ---
     const newlyCompletedLessons = [];
     Object.entries(user.lessonProgress || {}).forEach(([key, lp]) => {
       const before = prevLessonProgress[key];
@@ -347,6 +362,7 @@ router.put("/:id/progress", async (req, res) => {
       }
     });
 
+    // --- detect newly completed activities (for email) ---
     const newlyCompletedActivities = [];
     Object.entries(user.activityScores || {}).forEach(([key, as]) => {
       const before = prevActivityScores[key];
@@ -362,6 +378,7 @@ router.put("/:id/progress", async (req, res) => {
     delete out.password;
     res.json(out);
 
+    // --- optional email notifications for new completions ---
     const shouldEmail = canReceiveEmail(user);
     const emailSettings = user.notificationSettings?.email || {};
 
