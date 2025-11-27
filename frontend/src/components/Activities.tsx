@@ -1,23 +1,13 @@
-// frontend/src/components/Activities.tsx
-import {
-  Calendar,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Circle,
-  Search,
-  X,
-  Lock,
-} from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertCircle, Circle, Search, X, Lock } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { activitiesData, Activity } from '../data/activitiesData';
 import { useState, useMemo } from 'react';
 import { ActivityDetailModal } from './modals/ActivityDetailModal';
 import { useApp } from '../contexts/AppContext';
 import { Page } from '../App';
-import { useGlobalData } from '../contexts/GlobalDataContext';
 
 interface ActivitiesProps {
   onNavigate?: (page: Page) => void;
@@ -25,63 +15,52 @@ interface ActivitiesProps {
 
 export function Activities({ onNavigate }: ActivitiesProps = {}) {
   const { lessonProgress, activityScores } = useApp();
-  const { activities: serverActivities } = useGlobalData();
-
-  const effectiveActivities =
-    Array.isArray(serverActivities) && serverActivities.length > 0 ? serverActivities : [];
-
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<
-    'all' | 'completed' | 'in-progress' | 'pending'
-  >('all');
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'completed' | 'in-progress' | 'pending'>('all');
 
-  // 🔹 Helper: map activity IDs to dedicated pages
-  const openActivityPage = (activity: any): boolean => {
-    if (!onNavigate) return false;
+  // Helper: map activity.id -> Page
+  const navigateToActivity = (activity: Activity) => {
+    if (!onNavigate) return;
+
     switch (activity.id) {
       case 1:
         onNavigate('activity-shape-color-sorter');
-        return true;
+        break;
       case 2:
-        onNavigate('activity-number-adventure');
-        return true;
+        onNavigate('activity-number-counting');
+        break;
       case 3:
-        onNavigate('activity-reading-quiz');
-        return true;
+        onNavigate('activity-reading-comprehension');
+        break;
       case 4:
-        onNavigate('activity-science-lab');
-        return true;
+        onNavigate('activity-science-experiment'); // or 'activity-science-adventure'
+        break;
       case 5:
-        onNavigate('activity-music-challenge');
-        return true;
+        onNavigate('activity-music-rhythm');
+        break;
       case 6:
-        onNavigate('activity-demo-game');
-        return true;
+        onNavigate('activity-our-emotions');
+        break;
       default:
-        return false;
+        // Unknown ID -> just open modal
+        setSelectedActivity(activity);
     }
   };
 
-  // Merge user progress into activities
+  // Process all activities including locked ones
   const allActivities = useMemo(() => {
-    return effectiveActivities.map((activity: any) => {
-      const activityScore =
-        activityScores[activity.id] ||
-        activityScores[String(activity.id)] ||
-        (activity._id ? activityScores[String(activity._id)] : undefined);
-
+    return activitiesData.map((activity) => {
+      const activityScore = activityScores[activity.id];
       const relatedLesson =
-        activity.relatedLessonId !== undefined && activity.relatedLessonId !== null
-          ? lessonProgress[activity.relatedLessonId] ||
-            lessonProgress[String(activity.relatedLessonId)]
+        activity.relatedLessonId !== undefined
+          ? lessonProgress[activity.relatedLessonId]
           : null;
 
+      // Check if activity is locked
       const isLocked =
-        activity.relatedLessonId !== undefined &&
-        activity.relatedLessonId !== null &&
-        !relatedLesson?.completed;
+        activity.relatedLessonId !== undefined && !relatedLesson?.completed;
 
       let status: 'pending' | 'in-progress' | 'completed' = 'pending';
       let grade = activity.grade;
@@ -91,9 +70,9 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
       if (activityScore) {
         if (activityScore.completed) {
           status = 'completed';
-          const percentScore = activityScore.maxScore
-            ? Math.round((activityScore.score / activityScore.maxScore) * 100)
-            : activityScore.score;
+          const percentScore = Math.round(
+            (activityScore.score / activityScore.maxScore) * 100
+          );
           score = percentScore;
           grade =
             percentScore >= 95
@@ -107,15 +86,12 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
               : percentScore >= 70
               ? 'C'
               : 'D';
-        } else {
-          status = 'in-progress';
         }
-        dueDate = activityScore.dueDate ?? null;
+        dueDate = activityScore.dueDate;
       } else if (relatedLesson?.completed && !isLocked) {
-        if (relatedLesson.completedDate) {
-          dueDate = new Date(relatedLesson.completedDate);
-          dueDate.setDate(dueDate.getDate() + 1);
-        }
+        // Set due date to 1 day after lesson completion
+        dueDate = new Date(relatedLesson.completedDate!);
+        dueDate.setDate(dueDate.getDate() + 1);
       }
 
       return {
@@ -127,15 +103,20 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
         isLocked,
       };
     });
-  }, [lessonProgress, activityScores, effectiveActivities]);
+  }, [lessonProgress, activityScores]);
 
-  const filterActivities = (activities: any[]) => {
-    const query = searchQuery.toLowerCase();
+  // Filter activities - show all including locked
+  const availableActivities = allActivities;
+
+  // Filter activities based on search and filters
+  const filterActivities = (activities: Activity[]) => {
     return activities.filter((activity) => {
       if (
-        query &&
-        !((activity.title || '').toLowerCase().includes(query) ||
-          (activity.description || '').toLowerCase().includes(query))
+        searchQuery &&
+        !activity.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !activity.description
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
       ) {
         return false;
       }
@@ -144,20 +125,29 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
   };
 
   const pendingActivities = filterActivities(
-    allActivities.filter((a) => a.status === 'pending' || a.status === 'in-progress')
-  );
-  const completedActivitiesList = filterActivities(
-    allActivities.filter((a) => a.status === 'completed')
+    availableActivities.filter(
+      (a) => a.status === 'pending' || a.status === 'in-progress'
+    )
   );
 
-  const completedCount = allActivities.filter((a) => a.status === 'completed').length;
-  const inProgressCount = allActivities.filter((a) => a.status === 'in-progress').length;
-  const pendingCount = allActivities.filter((a) => a.status === 'pending').length;
+  const completedActivitiesList = filterActivities(
+    availableActivities.filter((a) => a.status === 'completed')
+  );
+
+  const completedCount = availableActivities.filter(
+    (a) => a.status === 'completed'
+  ).length;
+  const inProgressCount = availableActivities.filter(
+    (a) => a.status === 'in-progress'
+  ).length;
+  const pendingCount = availableActivities.filter(
+    (a) => a.status === 'pending'
+  ).length;
 
   const stats = [
     {
       label: 'Total Activities',
-      value: allActivities.length.toString(),
+      value: availableActivities.length.toString(),
       icon: 'all' as const,
       color: 'from-blue-500 to-blue-600',
       filter: 'all' as const,
@@ -192,20 +182,32 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
       case 'in-progress':
         return <Clock className="w-5 h-5 text-blue-500" />;
       case 'pending':
-      default:
         return <Circle className="w-5 h-5 text-slate-400" />;
+      default:
+        return null;
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'high':
-        return <Badge className="bg-red-500 hover:bg-red-600">High Priority</Badge>;
+        return (
+          <Badge className="bg-red-500 hover:bg-red-600">
+            High Priority
+          </Badge>
+        );
       case 'medium':
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Medium</Badge>;
+        return (
+          <Badge className="bg-yellow-500 hover:bg-yellow-600">
+            Medium
+          </Badge>
+        );
       case 'low':
         return (
-          <Badge variant="outline" className="border-slate-300 dark:border-slate-600">
+          <Badge
+            variant="outline"
+            className="border-slate-300 dark:border-slate-600"
+          >
             Low
           </Badge>
         );
@@ -214,43 +216,63 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
     }
   };
 
-  const handleStatClick = (filter: 'all' | 'completed' | 'in-progress' | 'pending') => {
+  const handleStatClick = (
+    filter: 'all' | 'completed' | 'in-progress' | 'pending'
+  ) => {
     setSelectedFilter(filter);
-    if (filter === 'completed') setSelectedTab('completed');
-    else setSelectedTab('pending');
+    if (filter === 'completed') {
+      setSelectedTab('completed');
+    } else {
+      setSelectedTab('pending');
+    }
   };
 
-  const getFilteredActivities = (baseActivities: any[]) => {
+  const getFilteredActivities = (baseActivities: Activity[]) => {
     if (selectedFilter === 'all') return baseActivities;
     return baseActivities.filter((a) => a.status === selectedFilter);
   };
 
   const displayPendingActivities = getFilteredActivities(pendingActivities);
-  const displayCompletedActivities = getFilteredActivities(completedActivitiesList);
+  const displayCompletedActivities =
+    getFilteredActivities(completedActivitiesList);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-slate-800 dark:text-slate-100 mb-2">Activities</h1>
-        <p className="text-slate-600 dark:text-slate-400">Track and complete your assignments</p>
+        <h1 className="text-slate-800 dark:text-slate-100 mb-2">
+          Activities
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400">
+          Track and complete your assignments
+        </p>
       </div>
 
-      {/* Stat Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <button
             key={index}
             onClick={() => handleStatClick(stat.filter)}
             className={`bg-gradient-to-br ${stat.color} text-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all text-left ${
-              selectedFilter === stat.filter ? 'ring-4 ring-white dark:ring-slate-900 ring-offset-2' : ''
+              selectedFilter === stat.filter
+                ? 'ring-4 ring-white dark:ring-slate-900 ring-offset-2'
+                : ''
             }`}
           >
             <div className="flex items-center justify-between mb-2">
-              {stat.icon === 'completed' && <CheckCircle className="w-8 h-8 opacity-80" />}
-              {stat.icon === 'in-progress' && <Clock className="w-8 h-8 opacity-80" />}
-              {stat.icon === 'pending' && <AlertCircle className="w-8 h-8 opacity-80" />}
-              {stat.icon === 'all' && <Circle className="w-8 h-8 opacity-80" />}
+              {stat.icon === 'completed' && (
+                <CheckCircle className="w-8 h-8 opacity-80" />
+              )}
+              {stat.icon === 'in-progress' && (
+                <Clock className="w-8 h-8 opacity-80" />
+              )}
+              {stat.icon === 'pending' && (
+                <AlertCircle className="w-8 h-8 opacity-80" />
+              )}
+              {stat.icon === 'all' && (
+                <Circle className="w-8 h-8 opacity-80" />
+              )}
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                 <span className="text-2xl">{stat.value}</span>
               </div>
@@ -284,11 +306,14 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
       {/* Active Filter Indicator */}
       {selectedFilter !== 'all' && (
         <div className="flex items-center gap-2">
-          <span className="text-slate-600 dark:text-slate-400 text-sm">Filtering by:</span>
+          <span className="text-slate-600 dark:text-slate-400 text-sm">
+            Filtering by:
+          </span>
           <Badge className="bg-blue-500">
             {selectedFilter === 'in-progress'
               ? 'In Progress'
-              : selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1)}
+              : selectedFilter.charAt(0).toUpperCase() +
+                selectedFilter.slice(1)}
           </Badge>
           <button
             onClick={() => setSelectedFilter('all')}
@@ -302,17 +327,23 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
       {/* Tabs */}
       <Tabs
         value={selectedTab}
-        onValueChange={(v) => setSelectedTab(v as 'pending' | 'completed')}
+        onValueChange={(v) =>
+          setSelectedTab(v as 'pending' | 'completed')
+        }
         className="w-full"
       >
         <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="pending">Pending ({pendingActivities.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completedActivitiesList.length})</TabsTrigger>
+          <TabsTrigger value="pending">
+            Pending ({pendingActivities.length})
+          </TabsTrigger>
+          <TabsTrigger value="completed">
+            Completed ({completedActivitiesList.length})
+          </TabsTrigger>
         </TabsList>
 
-        {/* Pending / In-progress */}
+        {/* Pending tab */}
         <TabsContent value="pending" className="mt-6 space-y-4">
-          {allActivities.length === 0 ? (
+          {availableActivities.length === 0 ? (
             <div className="text-center py-12">
               <div className="flex justify-center mb-4">
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
@@ -323,7 +354,12 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                 No Activities Available Yet
               </div>
               <div className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                Complete lessons to unlock related activities!
+                Complete lessons to unlock related activities! Start
+                with the{' '}
+                <span className="text-pink-600 dark:text-pink-400">
+                  Shapes & Colors
+                </span>{' '}
+                lesson to unlock your first activity.
               </div>
             </div>
           ) : displayPendingActivities.length === 0 ? (
@@ -336,21 +372,23 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
               </div>
             </div>
           ) : (
-            displayPendingActivities.map((activity: any) => (
+            displayPendingActivities.map((activity) => (
               <div
-                key={activity._id ?? activity.id}
-                onClick={() => !activity.isLocked && setSelectedActivity(activity)}
+                key={activity.id}
+                onClick={() =>
+                  !activity.isLocked && setSelectedActivity(activity)
+                }
                 className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-all ${
-                  activity.isLocked ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl cursor-pointer'
+                  activity.isLocked
+                    ? 'opacity-60 cursor-not-allowed'
+                    : 'hover:shadow-xl cursor-pointer'
                 }`}
               >
                 <div className="p-6">
                   <div className="flex items-start gap-6">
                     {/* Icon */}
                     <div
-                      className={`w-16 h-16 bg-gradient-to-br ${
-                        activity.color || 'from-pink-500 to-rose-600'
-                      } rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}
+                      className={`w-16 h-16 bg-gradient-to-br ${activity.color} rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}
                     >
                       {activity.isLocked && (
                         <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
@@ -366,7 +404,9 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             {getStatusIcon(activity.status)}
-                            <h3 className="text-slate-800 dark:text-slate-100">{activity.title}</h3>
+                            <h3 className="text-slate-800 dark:text-slate-100">
+                              {activity.title}
+                            </h3>
                           </div>
                           <p className="text-slate-600 dark:text-slate-400 text-sm mb-3">
                             {activity.description}
@@ -389,32 +429,38 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                         </div>
                       </div>
 
-                      {/* Progress */}
-                      {activity.status === 'in-progress' && activity.totalQuestions && (
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between text-sm mb-2">
-                            <span className="text-slate-600 dark:text-slate-400">
-                              Progress: {activity.progress}/{activity.totalQuestions} questions
-                            </span>
-                            <span className="text-slate-800 dark:text-slate-200">
-                              {Math.round(
-                                (activity.progress! / activity.totalQuestions) * 100
-                              )}
-                              %
-                            </span>
+                      {/* Progress Bar */}
+                      {activity.status === 'in-progress' &&
+                        activity.totalQuestions && (
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between text-sm mb-2">
+                              <span className="text-slate-600 dark:text-slate-400">
+                                Progress: {activity.progress}/
+                                {activity.totalQuestions} questions
+                              </span>
+                              <span className="text-slate-800 dark:text-slate-200">
+                                {Math.round(
+                                  (activity.progress! /
+                                    activity.totalQuestions) *
+                                    100
+                                )}
+                                %
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                              <div
+                                className={`bg-gradient-to-r ${activity.color} h-2 rounded-full transition-all`}
+                                style={{
+                                  width: `${
+                                    (activity.progress! /
+                                      activity.totalQuestions) *
+                                    100
+                                  }%`,
+                                }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                            <div
-                              className={`bg-gradient-to-r ${
-                                activity.color || 'from-blue-500 to-indigo-600'
-                              } h-2 rounded-full`}
-                              style={{
-                                width: `${(activity.progress! / activity.totalQuestions) * 100}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Footer */}
                       <div className="flex items-center justify-between">
@@ -427,7 +473,12 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                           ) : activity.dueDate ? (
                             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                               <Calendar className="w-4 h-4" />
-                              <span>Due: {new Date(activity.dueDate).toLocaleDateString()}</span>
+                              <span>
+                                Due:{' '}
+                                {new Date(
+                                  activity.dueDate
+                                ).toLocaleDateString()}
+                              </span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
@@ -437,34 +488,24 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                           )}
                           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                             <span className="text-yellow-500">⭐</span>
-                            <span>{activity.points}</span>
+                            <span>{activity.points} points</span>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          <Button
-                            className={`bg-gradient-to-r ${
-                              activity.color || 'from-blue-500 to-indigo-600'
-                            }`}
-                            disabled={activity.isLocked}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (activity.isLocked) return;
-
-                              // Try to open dedicated activity page first
-                              if (openActivityPage(activity)) return;
-
-                              // Fallback to detail modal
-                              setSelectedActivity(activity);
-                            }}
-                          >
-                            {activity.isLocked
-                              ? 'Locked'
-                              : activity.status === 'in-progress'
-                              ? 'Continue'
-                              : 'Start Activity'}
-                          </Button>
-                        </div>
+                        <Button
+                          className={`bg-gradient-to-r ${activity.color}`}
+                          disabled={activity.isLocked}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (activity.isLocked) return;
+                            navigateToActivity(activity);
+                          }}
+                        >
+                          {activity.isLocked
+                            ? 'Locked'
+                            : activity.status === 'in-progress'
+                            ? 'Continue'
+                            : 'Start Activity'}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -474,7 +515,7 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
           )}
         </TabsContent>
 
-        {/* Completed */}
+        {/* Completed tab */}
         <TabsContent value="completed" className="mt-6 space-y-4">
           {displayCompletedActivities.length === 0 ? (
             <div className="text-center py-12">
@@ -486,9 +527,9 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
               </div>
             </div>
           ) : (
-            displayCompletedActivities.map((activity: any) => (
+            displayCompletedActivities.map((activity) => (
               <div
-                key={activity._id ?? activity.id}
+                key={activity.id}
                 onClick={() => setSelectedActivity(activity)}
                 className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all cursor-pointer"
               >
@@ -496,9 +537,7 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                   <div className="flex items-start gap-6">
                     {/* Icon */}
                     <div
-                      className={`w-16 h-16 bg-gradient-to-br ${
-                        activity.color || 'from-blue-500 to-indigo-600'
-                      } rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}
+                      className={`w-16 h-16 bg-gradient-to-br ${activity.color} rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 relative`}
                     >
                       {activity.icon}
                       <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
@@ -506,7 +545,6 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                       </div>
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -561,7 +599,14 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                       {/* Footer */}
                       <div className="flex items-center justify-between">
                         <div className="text-sm text-slate-500 dark:text-slate-400">
-                          Completed {activity.completedDate}
+                          Completed{' '}
+                          {activity.completedDate
+                            ? typeof activity.completedDate === 'string'
+                              ? activity.completedDate
+                              : activity.completedDate instanceof Date
+                              ? activity.completedDate.toLocaleDateString()
+                              : ''
+                            : ''}
                         </div>
                         <div className="flex gap-2">
                           <Button
@@ -579,8 +624,7 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (openActivityPage(activity)) return;
-                              setSelectedActivity(activity);
+                              navigateToActivity(activity);
                             }}
                           >
                             Retake
@@ -596,19 +640,13 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
         </TabsContent>
       </Tabs>
 
-      {/* Activity Modal */}
+      {/* Activity Detail Modal */}
       {selectedActivity && (
         <ActivityDetailModal
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
           onStart={() => {
-            if (!selectedActivity) return;
-            // Prefer dedicated activity page
-            if (openActivityPage(selectedActivity)) {
-              setSelectedActivity(null);
-              return;
-            }
-            // Fallback (should rarely be needed now)
+            navigateToActivity(selectedActivity);
             setSelectedActivity(null);
           }}
         />
