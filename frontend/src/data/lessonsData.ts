@@ -1,4 +1,3 @@
-// frontend/src/data/lessonsData.ts
 export interface Lesson {
   id: number;
   title: string;
@@ -7,13 +6,13 @@ export interface Lesson {
   duration: string;
   progress: number;
   status: 'completed' | 'in-progress' | 'not-started';
-  difficulty: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   rating: number;
   icon: string;
   color: string;
   lessons: number;
   completedLessons: number;
-  content: {
+  content?: {
     introduction: string;
     objectives: string[];
     activities: string[];
@@ -23,157 +22,152 @@ export interface Lesson {
 export const lessonsData: Lesson[] = [
   {
     id: 1,
-    title: 'Counting Fun: Numbers 1–20',
-    description: 'Practice counting, ordering, and writing numbers from 1 to 20.',
-    category: 'Math',
-    duration: '20 minutes',
+    title: 'Introduction to Numbers',
+    description: 'Count objects, explore the number line 1-20, and discover skip counting patterns (2s, 5s). Includes interactive counting games and pattern activities.',
+    category: 'Mathematics',
+    duration: '20 min',
     progress: 0,
     status: 'not-started',
     difficulty: 'Beginner',
     rating: 4.8,
     icon: '🔢',
-    color: 'from-blue-500 to-indigo-600',
-    lessons: 5,
+    color: 'from-blue-500 to-cyan-600',
+    lessons: 3,
     completedLessons: 0,
     content: {
-      introduction:
-        'Start your math journey by learning numbers 1–20. Your learner will count objects, recognize numerals, and practice simple number patterns.',
+      introduction: 'Start your math journey by learning numbers! Count, identify, and write numbers from 1 to 20.',
       objectives: [
-        'Count objects from 1 to 20',
-        'Recognize and write numbers 1–20',
-        'Understand number order (before / after)',
-        'Identify simple number patterns (skip counting by 2s)',
+        'Count objects up to 20',
+        'Recognize and write numbers',
+        'Understand number order',
+        'Practice number patterns'
       ],
-      activities: [
-        'Count everyday objects (toys, blocks, snacks)',
-        'Number tracing worksheets or whiteboard practice',
-        'Number matching game: numeral to quantity',
-        'Number line jump game (before / after)',
-      ],
-    },
+      activities: ['Count the Objects Game', 'Number Line Explorer', 'Skip Counting Patterns']
+    }
   },
   {
     id: 2,
-    title: 'ABC Adventure: Letters & Sounds',
-    description: 'Explore the alphabet, letter shapes, and beginning sounds.',
-    category: 'Language',
-    duration: '25 minutes',
+    title: 'Reading Basics',
+    description: 'Master the complete alphabet A-Z with letter sounds (phonics), blend simple CVC words like "cat" and "sun", and read tiny stories. Features interactive letter cards and word blending.',
+    category: 'Language Arts',
+    duration: '25 min',
     progress: 0,
     status: 'not-started',
     difficulty: 'Beginner',
-    rating: 4.9,
-    icon: '🔤',
-    color: 'from-emerald-500 to-teal-500',
-    lessons: 6,
+    rating: 4.7,
+    icon: '📚',
+    color: 'from-green-500 to-emerald-600',
+    lessons: 10,
     completedLessons: 0,
     content: {
-      introduction:
-        'This lesson introduces the alphabet in a playful way. Learners see, say, and trace letters while connecting them to familiar words.',
+      introduction: 'Build a strong foundation in reading with letters, sounds, and simple words.',
       objectives: [
-        'Recognize uppercase letters A–Z',
-        'Match letters with common words (A = apple)',
-        'Practice basic letter sounds',
-        'Develop confidence speaking and pointing to letters',
+        'Identify all alphabet letters',
+        'Learn letter sounds (phonics)',
+        'Read simple 3-letter words',
+        'Practice sight words'
       ],
-      activities: [
-        'Alphabet song and pointing to each letter',
-        'Letter card flash game (find the letter)',
-        'Matching letters with picture cards',
-        'Tracing a few focus letters (e.g., A, B, C, D)',
-      ],
-    },
+      activities: ['Alphabet Letter Cards', 'CVC Word Blending', 'Tiny Story Reading']
+    }
   },
   {
     id: 3,
-    title: 'First Reading: Sight Words & Simple Sentences',
-    description: 'Use simple sight words to build and read first sentences.',
-    category: 'Reading',
-    duration: '30 minutes',
+    title: 'Science Exploration',
+    description: 'Explore your five senses (sight, hearing, touch, smell, taste), learn about science tools (magnifying glass, binoculars), and practice safety rules. Includes scavenger hunt and observation lab activities.',
+    category: 'Science',
+    duration: '30 min',
     progress: 0,
     status: 'not-started',
-    difficulty: 'Early Reader',
-    rating: 4.7,
-    icon: '📖',
-    color: 'from-orange-500 to-amber-500',
-    lessons: 5,
+    difficulty: 'Intermediate',
+    rating: 4.9,
+    icon: '🔬',
+    color: 'from-purple-500 to-violet-600',
+    lessons: 12,
     completedLessons: 0,
     content: {
-      introduction:
-        'Learners are introduced to high-frequency sight words and short sentences that they can read aloud with support.',
+      introduction: 'Explore science through hands-on experiments and observations about nature.',
       objectives: [
-        'Recognize simple sight words (I, see, like, a, the)',
-        'Point to each word while reading left to right',
-        'Read short patterned sentences with help',
-        'Build confidence reading aloud',
+        'Understand basic scientific concepts',
+        'Conduct simple experiments',
+        'Make observations',
+        'Learn about plants and animals'
       ],
-      activities: [
-        'Sight word flash cards',
-        'Sentence strip building (e.g., “I see a cat.”)',
-        'Picture matching with sentences',
-        'Shared reading with finger tracking under each word',
-      ],
-    },
+      activities: ['Senses Scavenger Hunt', 'Observation Lab', 'Safe or Unsafe Activity']
+    }
   },
   {
     id: 4,
-    title: 'Shapes & Colors Adventure',
-    description: 'Discover circles, squares, triangles, and rectangles using bright colors.',
-    category: 'Math',
-    duration: '20 minutes',
-    progress: 0,
-    status: 'not-started',
-    difficulty: 'Beginner',
-    rating: 4.9,
-    icon: '🎨',
-    color: 'from-purple-500 to-pink-500',
-    lessons: 4,
-    completedLessons: 0,
-    content: {
-      introduction:
-        'In this lesson, learners explore basic shapes and colors through objects they see every day. They will name shapes, identify colors, and match them together.',
-      objectives: [
-        'Identify basic shapes: circle, square, triangle, rectangle',
-        'Name and recognize common colors (red, blue, yellow, green)',
-        'Match shapes to real-world objects',
-        'Describe objects using both shape and color (e.g., “red circle”)',
-      ],
-      activities: [
-        'Shape hunt around the room (find circles, squares, etc.)',
-        'Color sorting with blocks, crayons, or toys',
-        'Shape and color matching cards',
-        'Drawing and coloring favorite shapes',
-      ],
-    },
-  },
-  {
-    id: 5,
-    title: 'Our Wonderful World: Nature & Science',
-    description: 'Learn about plants, animals, weather, and how to care for the Earth.',
-    category: 'Science',
-    duration: '25 minutes',
+    title: 'Shapes & Colors',
+    description: 'Identify basic shapes (circle, square, triangle, rectangle) and learn primary colors (red, blue, yellow), secondary colors (orange, green, purple), and how to mix them. Features shape sorting and color mixing activities.',
+    category: 'Visual Arts',
+    duration: '15 min',
     progress: 0,
     status: 'not-started',
     difficulty: 'Beginner',
     rating: 4.6,
-    icon: '🌱',
-    color: 'from-lime-500 to-green-500',
-    lessons: 5,
+    icon: '🎨',
+    color: 'from-pink-500 to-rose-600',
+    lessons: 6,
     completedLessons: 0,
     content: {
-      introduction:
-        'This lesson gently introduces science through nature: plants, animals, and weather. Learners observe, describe, and ask questions about the world around them.',
+      introduction: 'Discover the wonderful world of shapes and colors! Learn to identify, name, and create with different shapes and colors.',
       objectives: [
-        'Name common animals and their homes',
-        'Identify basic parts of a plant (root, stem, leaf)',
-        'Talk about simple weather types (sunny, rainy, cloudy)',
-        'Practice ways to care for nature (don’t litter, water plants)',
+        'Identify basic shapes',
+        'Recognize primary and secondary colors',
+        'Understand shape properties',
+        'Create art with shapes and colors'
       ],
-      activities: [
-        'Picture walk: animals and their homes',
-        'Simple plant drawing and labeling',
-        'Weather chart for today’s weather',
-        'Brainstorming ways to keep the Earth clean',
+      activities: ['Shape Identification Game', 'Color Mixing Lab', 'Interactive Shape Sorter']
+    }
+  },
+  {
+    id: 5,
+    title: 'Music & Rhythm',
+    description: 'Feel the beat with different tempos (fast, slow, steady), learn rhythm symbols (♩ ta, ♫ ti-ti, 𝄽 rest), and create simple patterns. Includes clapping games and rhythm notation activities.',
+    category: 'Arts',
+    duration: '18 min',
+    progress: 0,
+    status: 'not-started',
+    difficulty: 'Beginner',
+    rating: 4.5,
+    icon: '🎵',
+    color: 'from-yellow-500 to-orange-600',
+    lessons: 4,
+    completedLessons: 0,
+    content: {
+      introduction: 'Students explore beat, tempo, and simple rhythm patterns using clapping, tapping, and digital sound cues.',
+      objectives: [
+        'Keep a steady beat with clapping or tapping',
+        'Recognize fast vs. slow tempo',
+        'Repeat and create simple rhythm patterns',
+        'Connect rhythm to movement (marching, swaying)'
       ],
-    },
+      activities: ['Clapping Game (Follow the Beat)', 'Echo Rhythm Patterns', 'Rhythm Symbol Matching']
+    }
+  },
+  {
+    id: 6,
+    title: 'Our Emotions',
+    description: 'Name and recognize four core feelings (happy, sad, angry, scared), understand what causes them, and learn calming strategies. Features emotion detective quiz and interactive calming corner tools.',
+    category: 'Social & Emotional Learning',
+    duration: '20 min',
+    progress: 0,
+    status: 'not-started',
+    difficulty: 'Beginner',
+    rating: 4.9,
+    icon: '❤️',
+    color: 'from-pink-500 to-rose-500',
+    lessons: 8,
+    completedLessons: 0,
+    content: {
+      introduction: 'Learn to identify, understand, and manage emotions with kid-friendly tools and strategies.',
+      objectives: [
+        'Recognize and name different emotions',
+        'Understand what causes different feelings',
+        'Learn calming strategies for big emotions',
+        'Practice emotional regulation techniques'
+      ],
+      activities: ['Feeling Detective Game', 'Calming Corner Practice', 'Emotion Faces Matching']
+    }
   },
 ];

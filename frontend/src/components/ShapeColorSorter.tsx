@@ -11,23 +11,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/dialog';
-
+ 
 interface ShapeColorSorterProps {
   onBack: () => void;
 }
-
+ 
 interface ShapeItem {
   id: string;
   type: 'circle' | 'square' | 'triangle';
   color: 'red' | 'blue' | 'yellow';
 }
-
+ 
 interface BucketType {
   type: 'circle' | 'square' | 'triangle';
   color: 'red' | 'blue' | 'yellow';
   label: string;
 }
-
+ 
 const DraggableShape = ({ shape, onDrop }: { shape: ShapeItem; onDrop: (id: string) => void }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'shape',
@@ -41,23 +41,23 @@ const DraggableShape = ({ shape, onDrop }: { shape: ShapeItem; onDrop: (id: stri
       }
     },
   }), [shape]);
-
+ 
   const getShapeStyle = () => {
     const baseStyle = 'transition-all cursor-move hover:scale-110';
-    const colorClass = 
+    const colorClass =
       shape.color === 'red' ? 'bg-red-500' :
       shape.color === 'blue' ? 'bg-blue-500' :
       'bg-yellow-400';
-    
+   
     if (isDragging) {
       return `${baseStyle} ${colorClass} opacity-50`;
     }
     return `${baseStyle} ${colorClass} shadow-lg hover:shadow-xl`;
   };
-
+ 
   const renderShape = () => {
     const shapeClasses = getShapeStyle();
-    
+   
     if (shape.type === 'circle') {
       return <div ref={drag} className={`${shapeClasses} w-16 h-16 rounded-full`} />;
     } else if (shape.type === 'square') {
@@ -65,7 +65,7 @@ const DraggableShape = ({ shape, onDrop }: { shape: ShapeItem; onDrop: (id: stri
     } else {
       return (
         <div ref={drag} className="relative w-16 h-16 cursor-move transition-all hover:scale-110">
-          <div 
+          <div
             className={`absolute inset-0 ${shape.color === 'yellow' ? 'bg-yellow-400' : shape.color === 'red' ? 'bg-red-500' : 'bg-blue-500'}`}
             style={{
               clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
@@ -77,17 +77,17 @@ const DraggableShape = ({ shape, onDrop }: { shape: ShapeItem; onDrop: (id: stri
       );
     }
   };
-
+ 
   return renderShape();
 };
-
-const Bucket = ({ 
-  bucket, 
-  onDrop, 
+ 
+const Bucket = ({
+  bucket,
+  onDrop,
   onRemove,
-  shapes 
-}: { 
-  bucket: BucketType; 
+  shapes
+}: {
+  bucket: BucketType;
   onDrop: (shape: ShapeItem, isCorrect: boolean) => void;
   onRemove: (shape: ShapeItem) => void;
   shapes: ShapeItem[];
@@ -103,16 +103,16 @@ const Bucket = ({
       isOver: monitor.isOver(),
     }),
   }), [bucket]);
-
-  const colorClass = 
+ 
+  const colorClass =
     bucket.color === 'red' ? 'bg-red-500' :
     bucket.color === 'blue' ? 'bg-blue-500' :
     'bg-yellow-400';
-
-  const borderClass = 
+ 
+  const borderClass =
     isOver ? 'border-purple-500 border-4 scale-105' :
     'border-slate-300 dark:border-slate-600';
-
+ 
   const renderBucketShape = () => {
     if (bucket.type === 'circle') {
       return <div className={`${colorClass} w-12 h-12 rounded-full`} />;
@@ -121,7 +121,7 @@ const Bucket = ({
     } else {
       return (
         <div className="relative w-12 h-12">
-          <div 
+          <div
             className={colorClass}
             style={{
               clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
@@ -133,18 +133,18 @@ const Bucket = ({
       );
     }
   };
-
+ 
   const renderShapeInBucket = (shape: ShapeItem) => {
     const isCorrect = shape.type === bucket.type && shape.color === bucket.color;
-    const shapeColorClass = 
+    const shapeColorClass =
       shape.color === 'red' ? 'bg-red-500' :
       shape.color === 'blue' ? 'bg-blue-500' :
       'bg-yellow-400';
-    
-    const containerClass = isCorrect 
-      ? 'border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+   
+    const containerClass = isCorrect
+      ? 'border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
       : 'border-2 border-red-500 bg-red-50 dark:bg-red-900/20';
-
+ 
     if (shape.type === 'circle') {
       return (
         <div className={`${containerClass} rounded-xl p-2 flex items-center gap-2 relative group`}>
@@ -173,7 +173,7 @@ const Bucket = ({
       return (
         <div className={`${containerClass} rounded-xl p-2 flex items-center gap-2 relative group`}>
           <div className="relative w-8 h-8">
-            <div 
+            <div
               className={shapeColorClass}
               style={{
                 clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
@@ -192,7 +192,7 @@ const Bucket = ({
       );
     }
   };
-
+ 
   return (
     <div
       ref={drop}
@@ -202,7 +202,7 @@ const Bucket = ({
         {renderBucketShape()}
       </div>
       <div className="text-slate-700 dark:text-slate-300 mb-4">{bucket.label}</div>
-      
+     
       <div className="flex flex-col gap-2 w-full">
         {shapes.map((shape) => (
           <div key={shape.id}>
@@ -210,7 +210,7 @@ const Bucket = ({
           </div>
         ))}
       </div>
-      
+     
       {isOver && (
         <div className="absolute inset-0 bg-purple-500/10 rounded-2xl flex items-center justify-center">
           <Sparkles className="w-8 h-8 text-purple-500" />
@@ -219,12 +219,12 @@ const Bucket = ({
     </div>
   );
 };
-
+ 
 export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
   const { completeActivity, activityScores } = useApp();
   const activityId = 1; // Shapes & Colors Challenge activity ID
   const isActivityCompleted = activityScores[activityId]?.completed || false;
-
+ 
   const initialShapes: ShapeItem[] = [
     { id: 'red-circle-1', type: 'circle', color: 'red' },
     { id: 'red-circle-2', type: 'circle', color: 'red' },
@@ -236,80 +236,80 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
     { id: 'yellow-triangle-2', type: 'triangle', color: 'yellow' },
     { id: 'yellow-triangle-3', type: 'triangle', color: 'yellow' },
   ];
-
+ 
   const [shapes, setShapes] = useState<ShapeItem[]>(() => {
     // Shuffle shapes for random order
     return [...initialShapes].sort(() => Math.random() - 0.5);
   });
-
+ 
   const [buckets, setBuckets] = useState<{ [key: string]: ShapeItem[] }>({
     'red-circle': [],
     'blue-square': [],
     'yellow-triangle': [],
   });
-
+ 
   const [correctMoves, setCorrectMoves] = useState(0);
   const [incorrectMoves, setIncorrectMoves] = useState(0);
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
-
+ 
   const bucketDefinitions: BucketType[] = [
     { type: 'circle', color: 'red', label: 'Red Circle' },
     { type: 'square', color: 'blue', label: 'Blue Square' },
     { type: 'triangle', color: 'yellow', label: 'Yellow Triangle' },
   ];
-
+ 
   const handleDrop = useCallback((bucketKey: string, shape: ShapeItem, isCorrect: boolean) => {
     setBuckets(prev => ({
       ...prev,
       [bucketKey]: [...prev[bucketKey], shape],
     }));
-    
+   
     if (isCorrect) {
       setCorrectMoves(c => c + 1);
     } else {
       setIncorrectMoves(i => i + 1);
     }
   }, []);
-
+ 
   const handleShapeRemove = useCallback((id: string) => {
     setShapes(prev => prev.filter(s => s.id !== id));
   }, []);
-
+ 
   const handleRemoveFromBucket = useCallback((bucketKey: string, shape: ShapeItem) => {
     setBuckets(prev => ({
       ...prev,
       [bucketKey]: prev[bucketKey].filter(s => s.id !== shape.id),
     }));
-    
+   
     setShapes(prev => [...prev, shape]);
-    
+   
     // Adjust scores
     const bucket = bucketDefinitions.find(b => `${b.color}-${b.type}` === bucketKey);
     const isCorrect = bucket && shape.type === bucket.type && shape.color === bucket.color;
-    
+   
     if (isCorrect) {
       setCorrectMoves(c => Math.max(0, c - 1));
     } else {
       setIncorrectMoves(i => Math.max(0, i - 1));
     }
   }, [bucketDefinitions]);
-
+ 
   const isComplete = shapes.length === 0;
-
+ 
   // Check for completion whenever shapes are all placed
   useEffect(() => {
     if (isComplete && !isActivityCompleted && !showCompletionDialog) {
       const timer = setTimeout(() => {
         const maxScore = 9; // 9 correct placements possible
         const score = correctMoves; // Score based on correct moves
-        
+       
         completeActivity(activityId, score, maxScore);
         setShowCompletionDialog(true);
       }, 500);
       return () => clearTimeout(timer);
     }
   }, [isComplete, isActivityCompleted, showCompletionDialog, activityId, completeActivity, correctMoves]);
-
+ 
   const handleReset = () => {
     const shuffled = [...initialShapes].sort(() => Math.random() - 0.5);
     setShapes(shuffled);
@@ -322,12 +322,12 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
     setIncorrectMoves(0);
     setShowCompletionDialog(false);
   };
-
+ 
   const calculateScore = () => {
     if (correctMoves === 0) return 0;
     return Math.round((correctMoves / 9) * 100);
   };
-
+ 
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="max-w-7xl mx-auto space-y-8">
@@ -343,7 +343,7 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
             Reset Game
           </Button>
         </div>
-
+ 
         {/* Activity Title */}
         <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-3xl p-8 shadow-2xl">
           <div className="flex items-center gap-6">
@@ -357,7 +357,7 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
             </div>
           </div>
         </div>
-
+ 
         {/* Score Tracker */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-200 dark:border-emerald-800/30 rounded-2xl p-6">
@@ -373,7 +373,7 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
             </div>
           </div>
         </div>
-
+ 
         {/* Instructions */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800/30 rounded-2xl p-6">
           <h3 className="text-blue-900 dark:text-blue-100 mb-2">How to Play:</h3>
@@ -385,7 +385,7 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
             <li>Your final score is based on correct placements out of 9 total</li>
           </ul>
         </div>
-
+ 
         {/* Shapes Pile */}
         <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800/30 rounded-2xl p-8">
           <h2 className="text-slate-800 dark:text-slate-100 mb-6 text-center">Shape Pile ({shapes.length} remaining)</h2>
@@ -397,16 +397,16 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
               </div>
             ) : (
               shapes.map(shape => (
-                <DraggableShape 
-                  key={shape.id} 
-                  shape={shape} 
+                <DraggableShape
+                  key={shape.id}
+                  shape={shape}
                   onDrop={handleShapeRemove}
                 />
               ))
             )}
           </div>
         </div>
-
+ 
         {/* Buckets */}
         <div>
           <h2 className="text-slate-800 dark:text-slate-100 mb-6 text-center">Sorting Buckets</h2>
@@ -425,7 +425,7 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
             })}
           </div>
         </div>
-
+ 
         {/* Progress Indicator */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
           <div className="flex items-center justify-between mb-3">
@@ -437,13 +437,13 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
             <div
               className="bg-gradient-to-r from-pink-500 to-rose-600 h-4 rounded-full transition-all duration-500"
-              style={{ 
-                width: `${((9 - shapes.length) / 9) * 100}%` 
+              style={{
+                width: `${((9 - shapes.length) / 9) * 100}%`
               }}
             />
           </div>
         </div>
-
+ 
         {/* Completion Dialog */}
         <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
           <DialogContent className="sm:max-w-md">
@@ -455,8 +455,8 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
             <DialogHeader>
               <DialogTitle className="text-center text-2xl">Activity Completed! 🎉</DialogTitle>
               <DialogDescription className="text-center">
-                {calculateScore() === 100 
-                  ? "Perfect! You sorted all shapes correctly!" 
+                {calculateScore() === 100
+                  ? "Perfect! You sorted all shapes correctly!"
                   : "Great effort! You can try again to improve your score."}
               </DialogDescription>
             </DialogHeader>
@@ -477,7 +477,7 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
               </div>
             </div>
             <div className="flex flex-col gap-2 mt-4">
-              <Button 
+              <Button
                 onClick={() => {
                   setShowCompletionDialog(false);
                   onBack();
@@ -486,7 +486,7 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
               >
                 Back to Activities
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   setShowCompletionDialog(false);
                   handleReset();
@@ -502,3 +502,4 @@ export function ShapeColorSorter({ onBack }: ShapeColorSorterProps) {
     </DndProvider>
   );
 }
+ 
