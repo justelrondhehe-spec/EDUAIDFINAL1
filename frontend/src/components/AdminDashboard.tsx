@@ -11,7 +11,7 @@ export function AdminDashboard() {
     getAverageProgress,
     getCompletionRate,
     getTopPerformers,
-    students, // <- list of all students from GlobalDataContext
+    students, // may be undefined or empty in some setups
     loading,
   } = useGlobalData();
 
@@ -44,10 +44,35 @@ export function AdminDashboard() {
 
   const top = getTopPerformers(4);
 
-  // --- New Students panel data (safe even if students is missing) ---
+  // --- NEW STUDENTS PANEL ---
+  // Some environments don't populate `students` but DO have users via getTopPerformers().
+  // We build a combined list, preferring `students` when available.
+  const baseStudents: any[] = (() => {
+    if (Array.isArray(students) && students.length > 0) {
+      return students;
+    }
+    // Fallback: derive unique students from top performers
+    const fromTop = getTopPerformers(200)
+      .map((tp) => tp.student)
+      .filter(Boolean);
+
+    // de-duplicate by _id / id / email
+    const seen = new Set<string>();
+    const unique: any[] = [];
+    for (const s of fromTop) {
+      const key =
+        String((s as any)._id ?? (s as any).id ?? (s as any).email ?? "");
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      unique.push(s);
+    }
+    return unique;
+  })();
+
   const newStudents =
-    Array.isArray(students)
-      ? [...students]
+    Array.isArray(baseStudents) && baseStudents.length
+      ? [...baseStudents]
+          .filter((s) => (s as any).role !== "admin") // hide admin account
           .sort((a: any, b: any) => {
             const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
             const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -136,9 +161,11 @@ export function AdminDashboard() {
 
             {/* New Students + Top Performers */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* New Students (replaces Recent Activity) */}
-              <div className="bg-white p-6 rounded-xl">
-                <h2 className="text-xl mb-4">New Students</h2>
+              {/* New Students */}
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                <h2 className="text-xl mb-4 text-slate-800 dark:text-slate-100">
+                  New Students
+                </h2>
                 {newStudents.length === 0 ? (
                   <div className="text-slate-400">
                     No students found yet.
@@ -149,16 +176,16 @@ export function AdminDashboard() {
                       key={s?._id ?? s?.id ?? s?.email}
                       className="mb-3 border-b last:border-b-0 pb-2"
                     >
-                      <div className="text-sm text-slate-800">
+                      <div className="text-sm text-slate-800 dark:text-slate-100">
                         {s?.name || s?.fullName || "Unnamed Student"}
                       </div>
                       {s?.email && (
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {s.email}
                         </div>
                       )}
                       {s?.createdAt && (
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-slate-400 dark:text-slate-500">
                           Joined{" "}
                           {new Date(s.createdAt).toLocaleString()}
                         </div>
@@ -169,8 +196,10 @@ export function AdminDashboard() {
               </div>
 
               {/* Top Performers */}
-              <div className="bg-white p-6 rounded-xl">
-                <h2 className="text-xl mb-4">Top Performers</h2>
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                <h2 className="text-xl mb-4 text-slate-800 dark:text-slate-100">
+                  Top Performers
+                </h2>
                 {top.length === 0 ? (
                   <div className="text-slate-400">No performers yet</div>
                 ) : (
@@ -180,10 +209,10 @@ export function AdminDashboard() {
                       className="mb-3"
                     >
                       <div className="flex justify-between items-center">
-                        <div className="text-sm">
+                        <div className="text-sm text-slate-800 dark:text-slate-100">
                           {tp.student.name || tp.student.email}
                         </div>
-                        <div className="text-lg text-emerald-600">
+                        <div className="text-lg text-emerald-600 dark:text-emerald-400">
                           {tp.overallProgress}%
                         </div>
                       </div>
