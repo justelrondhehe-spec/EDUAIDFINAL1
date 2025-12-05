@@ -36,14 +36,14 @@ export function ContactPage({ onNavigateToHome, onNavigateToLogin, onNavigateToS
     {
       icon: Phone,
       title: 'Call Us',
-      detail: '+1 (555) 123-4567',
+      detail: '+63 961 811 6449',
       description: 'Mon-Fri, 9am-5pm EST',
       color: 'from-emerald-500 to-green-600',
     },
     {
       icon: MapPin,
       title: 'Visit Us',
-      detail: '123 Education St, San Francisco, CA 94102',
+      detail: 'Ayala Blvd., Ermita, Manila, 1000, Philippines',
       description: 'By appointment only',
       color: 'from-purple-500 to-pink-600',
     },

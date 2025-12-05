@@ -120,9 +120,6 @@ export function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToIn
                 Start Learning
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button variant="outline">
-                Watch Demo
-              </Button>
             </div>
             <div className="flex items-center gap-6 mt-6">
               <div>
@@ -306,12 +303,6 @@ export function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToIn
               >
                 Start Learning
                 <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button 
-                variant="outline" 
-                className="border-2 border-white text-white hover:bg-white/10"
-              >
-                Contact Sales
               </Button>
             </div>
           </div>

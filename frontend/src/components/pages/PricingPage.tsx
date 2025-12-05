@@ -169,9 +169,6 @@ export function PricingPage({ onNavigateToHome, onNavigateToLogin, onNavigateToS
           <p className="text-base text-white/90 mb-6 max-w-2xl mx-auto">
             For schools and large organizations, we offer custom enterprise plans with additional features and support.
           </p>
-          <Button className="bg-white text-indigo-600 hover:bg-white/90" size="sm">
-            Contact Sales
-          </Button>
         </div>
       </div>
     </div>

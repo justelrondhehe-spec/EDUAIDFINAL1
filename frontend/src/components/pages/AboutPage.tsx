@@ -37,36 +37,42 @@ export function AboutPage({ onNavigateToHome, onNavigateToLogin, onNavigateToSig
 
   const team = [
     {
-      name: 'Dr. Sarah Johnson',
-      role: 'Chief Education Officer',
-      avatar: 'SJ',
+      name: 'Aaron James Jared Papa',
+      role: 'Project Manager',
+      avatar: 'AP',
       color: 'from-blue-500 to-indigo-500',
     },
     {
-      name: 'Michael Chen',
-      role: 'Chief Technology Officer',
-      avatar: 'MC',
+      name: 'Aira Camille Banusing',
+      role: 'Content Developer',
+      avatar: 'AB',
       color: 'from-purple-500 to-pink-500',
     },
     {
-      name: 'Emily Rodriguez',
-      role: 'Head of Curriculum',
-      avatar: 'ER',
+      name: 'Ryan Kristoffer Suganob',
+      role: 'Backend Developer',
+      avatar: 'RS',
       color: 'from-emerald-500 to-green-500',
     },
     {
-      name: 'David Kim',
-      role: 'Head of Product',
-      avatar: 'DK',
+      name: 'James Digman',
+      role: 'Lead Frontend Developer',
+      avatar: 'JD',
+      color: 'from-yellow-500 to-orange-500',
+    },
+    {
+      name: 'Jhon Nicholson Manalang',
+      role: 'Frongend Developer',
+      avatar: 'JM',
       color: 'from-yellow-500 to-orange-500',
     },
   ];
 
   const stats = [
-    { value: '10,000+', label: 'Active Students' },
-    { value: '500+', label: 'Lessons' },
-    { value: '50+', label: 'Expert Educators' },
-    { value: '15+', label: 'Countries' },
+    { value: '10+', label: 'Active Students' },
+    { value: '5', label: 'Lessons' },
+    { value: '5', label: 'Expert Educators' },
+    { value: '1', label: 'CountrY' },
   ];
 
   return (
@@ -93,7 +99,7 @@ export function AboutPage({ onNavigateToHome, onNavigateToLogin, onNavigateToSig
           <h2 className="text-2xl text-slate-800 dark:text-slate-100 mb-4">Our Story</h2>
           <div className="prose prose-base dark:prose-invert max-w-none">
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 leading-relaxed">
-              EduAid was founded in 2020 by a team of passionate educators and technologists who saw a need for better educational tools in the digital age. What started as a small project to help local students during remote learning has grown into a comprehensive platform serving thousands of students worldwide.
+              EduAid was founded in 2025 by a team of passionate students fron TUP-Manila who saw a need for better educational tools in the digital age. What started as a small project to help local students during remote learning has grown into a comprehensive platform serving thousands of students worldwide.
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 leading-relaxed">
               Our journey began when we noticed that traditional educational approaches weren't reaching all learners. We believed that by combining expert pedagogy with innovative technology, we could create something special—a platform that adapts to each student's unique learning style and pace.
