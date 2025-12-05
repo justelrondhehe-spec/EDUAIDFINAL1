@@ -48,6 +48,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [loading, setLoading] = useState<boolean>(true);
 
+  const setAuthToken = (t: string | null) => {
+    if (t) {
+      client.defaults.headers.common["Authorization"] = `Bearer ${t}`;
+    } else {
+      delete client.defaults.headers.common["Authorization"];
+    }
+    setToken(t);
+  };
+
+  const logout = () => {
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("justRegistered");
+    } catch {}
+    setAuthToken(null);
+    setUser(null);
+    window.dispatchEvent(
+      new CustomEvent("auth:changed", { detail: { user: null } })
+    );
+  };
+
   useEffect(() => {
     // if we already have a valid user in state, we can finish quickly
     if (!token) {
@@ -89,18 +111,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const onLogout = () => logout();
     window.addEventListener("auth:logout", onLogout as EventListener);
-    return () => window.removeEventListener("auth:logout", onLogout as EventListener);
+    return () =>
+      window.removeEventListener("auth:logout", onLogout as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const setAuthToken = (t: string | null) => {
-    if (t) {
-      client.defaults.headers.common["Authorization"] = `Bearer ${t}`;
-    } else {
-      delete client.defaults.headers.common["Authorization"];
-    }
-    setToken(t);
-  };
 
   const login = async (email: string, password: string) => {
     const res = await auth.login(email, password);
@@ -177,14 +191,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // alias for compatibility if components call signup(...)
   const signup = register;
 
-  const logout = () => {
+  // 🔹 NEW: updateUser helper used by ProfileSettings and others
+  const updateUser = (updated: any) => {
+    if (!updated) {
+      // treat as logout if called with null
+      logout();
+      return;
+    }
+
+    // ensure we keep the current id if backend doesn't return it
+    const withId = {
+      ...(user || {}),
+      ...updated,
+      _id: updated._id ?? user?._id,
+      id: updated.id ?? user?.id,
+    };
+
+    const normalized = normalizeUser(withId);
+    if (!normalized) {
+      console.warn("Auth updateUser: could not normalize user", withId);
+      return;
+    }
+
+    setUser(normalized);
     try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("justRegistered");
+      localStorage.setItem("user", JSON.stringify(normalized));
     } catch {}
-    setAuthToken(null);
-    setUser(null);
+
+    window.dispatchEvent(
+      new CustomEvent("auth:changed", { detail: { user: normalized } })
+    );
   };
 
   const isAuthenticated = !!user;
@@ -200,6 +236,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         register,
         signup,
         logout,
+        updateUser, // 👈 expose updateUser to consumers
       }}
     >
       {children}

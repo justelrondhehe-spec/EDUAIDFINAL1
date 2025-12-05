@@ -1,29 +1,20 @@
+// frontend/src/components/modals/LessonDetailModal.tsx
 import { X, Play, Clock, Award, Star, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
-import { LessonProgress } from '../../types/progressTypes'; // optional if you have a shared type
+import { Lesson } from '../../data/lessonsData';
 
-// Define a flexible Lesson type that works with backend data
+// Flexible Lesson type that works with fixtures + backend data
 interface LessonContent {
   introduction?: string;
   objectives?: string[];
   activities?: string[];
 }
 
-interface LessonLike {
+// Base everything on your real Lesson type, but make fields optional
+// so backend / partial objects still work safely.
+export interface LessonLike extends Partial<Lesson> {
   _id?: string;
-  id?: number;
-  title?: string;
-  description?: string;
-  category?: string;
-  duration?: string;
-  progress?: number;
-  status?: 'completed' | 'in-progress' | 'not-started' | string;
-  difficulty?: string;
-  rating?: number;
-  icon?: string;
-  color?: string;
-  lessons?: number;
-  completedLessons?: number;
+  // ensure content stays compatible even if backend shape is a bit loose
   content?: LessonContent | null;
 }
 
@@ -36,24 +27,32 @@ interface LessonDetailModalProps {
 export function LessonDetailModal({ lesson, onClose, onStart }: LessonDetailModalProps) {
   const color = lesson.color || 'from-blue-500 to-indigo-600';
   const title = lesson.title ?? 'Untitled Lesson';
-  const description = lesson.description ?? 'No description has been added for this lesson yet.';
+  const description =
+    lesson.description ?? 'No description has been added for this lesson yet.';
 
   const introduction =
     lesson.content?.introduction ??
     'Your teacher has not added a detailed introduction yet. You can still start the lesson and explore the activities.';
 
-  const objectives = Array.isArray(lesson.content?.objectives) ? lesson.content!.objectives! : [];
-  const activities = Array.isArray(lesson.content?.activities) ? lesson.content!.activities! : [];
+  const objectives = Array.isArray(lesson.content?.objectives)
+    ? lesson.content!.objectives!
+    : [];
+  const activities = Array.isArray(lesson.content?.activities)
+    ? lesson.content!.activities!
+    : [];
 
   const lessonsCount = typeof lesson.lessons === 'number' ? lesson.lessons : 0;
   const completedLessons =
     typeof lesson.completedLessons === 'number'
       ? lesson.completedLessons
-      : lessonsCount > 0 && lesson.progress
+      : lessonsCount > 0 && typeof lesson.progress === 'number'
       ? Math.floor(((lesson.progress ?? 0) / 100) * lessonsCount)
       : 0;
 
-  const progressValue = typeof lesson.progress === 'number' ? Math.max(0, Math.min(100, lesson.progress)) : 0;
+  const progressValue =
+    typeof lesson.progress === 'number'
+      ? Math.max(0, Math.min(100, lesson.progress))
+      : 0;
 
   return (
     <div
@@ -135,7 +134,9 @@ export function LessonDetailModal({ lesson, onClose, onStart }: LessonDetailModa
 
           {/* Learning Objectives */}
           <div className="mb-8">
-            <h3 className="text-slate-800 dark:text-slate-100 mb-3">Learning Objectives</h3>
+            <h3 className="text-slate-800 dark:text-slate-100 mb-3">
+              Learning Objectives
+            </h3>
             {objectives.length === 0 ? (
               <p className="text-slate-500 dark:text-slate-400 text-sm">
                 Objectives for this lesson haven&apos;t been added yet.
@@ -145,7 +146,9 @@ export function LessonDetailModal({ lesson, onClose, onStart }: LessonDetailModa
                 {objectives.map((objective, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-600 dark:text-slate-400">{objective}</span>
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {objective}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -154,7 +157,9 @@ export function LessonDetailModal({ lesson, onClose, onStart }: LessonDetailModa
 
           {/* Activities */}
           <div className="mb-8">
-            <h3 className="text-slate-800 dark:text-slate-100 mb-3">Activities Included</h3>
+            <h3 className="text-slate-800 dark:text-slate-100 mb-3">
+              Activities Included
+            </h3>
             {activities.length === 0 ? (
               <p className="text-slate-500 dark:text-slate-400 text-sm">
                 Activities for this lesson will appear here once your teacher adds them.
@@ -170,7 +175,9 @@ export function LessonDetailModal({ lesson, onClose, onStart }: LessonDetailModa
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white">
                         {index + 1}
                       </div>
-                      <span className="text-slate-700 dark:text-slate-300">{activity}</span>
+                      <span className="text-slate-700 dark:text-slate-300">
+                        {activity}
+                      </span>
                     </div>
                   </div>
                 ))}

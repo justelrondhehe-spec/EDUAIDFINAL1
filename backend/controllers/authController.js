@@ -1,5 +1,5 @@
-// backend/controllers/authController.js
 import User from "../models/User.js";
+import Notification from "../models/Notification.js"; // 1. Added Import
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/generateToken.js";
 
@@ -38,10 +38,26 @@ export const register = async (req, res, next) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
+    // 2. User is created here (CRITICAL STEP)
     const user = await User.create({ name, email, password: hashed });
+
+    // 3. FAIL-SAFE NOTIFICATION TRIGGER
+    // We wrap this in its own try/catch so it never blocks the user registration
+    try {
+      await Notification.create({
+        type: 'new_enrollment',
+        title: 'New Student Enrollment',
+        message: `${name} has enrolled in the platform`,
+        read: false
+      });
+    } catch (notifErr) {
+      // Just log the error, don't stop the registration
+      console.error("Failed to create enrollment notification:", notifErr);
+    }
 
     const token = generateToken(user);
 
+    // 4. Return success response
     return res.status(201).json({
       success: true,
       message: "User registered",

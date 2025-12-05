@@ -1,12 +1,9 @@
-// backend/controllers/adminController.js
 import User from '../models/User.js';
 import Lesson from '../models/Lesson.js';
 import Activity from '../models/Activity.js';
+import Notification from '../models/Notification.js'; // Import the new model
 
-/**
- * GET /api/admin/dashboard
- * Returns aggregated metrics used by admin UI.
- */
+// --- EXISTING DASHBOARD LOGIC ---
 export async function dashboard(req, res) {
   try {
     const [users, lessons, activities] = await Promise.all([
@@ -77,9 +74,6 @@ export async function dashboard(req, res) {
   }
 }
 
-/**
- * Simple GET /api/admin/users (optional helper)
- */
 export async function getUsers(req, res) {
   try {
     const users = await User.find({}).select('-password').lean();
@@ -99,5 +93,46 @@ export async function getUsers(req, res) {
   } catch (err) {
     console.error('adminController.getUsers error', err);
     return res.status(500).json({ message: 'Failed to fetch users' });
+  }
+}
+
+// --- NEW NOTIFICATION LOGIC ---
+
+// GET /api/admin/notifications
+export async function getNotifications(req, res) {
+  try {
+    const notifications = await Notification.find()
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(notifications);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ message: 'Error fetching notifications' });
+  }
+}
+
+// PUT /api/admin/notifications/read-all
+export async function markAllRead(req, res) {
+  try {
+    await Notification.updateMany({ read: false }, { $set: { read: true } });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error marking notifications:', error);
+    res.status(500).json({ message: 'Error updating notifications' });
+  }
+}
+
+// POST /api/admin/notifications/test (For debugging)
+export async function createTestNotification(req, res) {
+  try {
+    const newNotif = await Notification.create({
+      type: 'new_enrollment',
+      title: 'New Student Enrollment',
+      message: 'A new student has joined EduAid!',
+      read: false
+    });
+    res.status(201).json(newNotif);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }

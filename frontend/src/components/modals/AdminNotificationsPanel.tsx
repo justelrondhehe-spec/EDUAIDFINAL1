@@ -1,63 +1,30 @@
 import { X, CheckCheck, UserPlus, AlertCircle, TrendingUp } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useState } from 'react';
+
+// Helper to calculate "2 minutes ago", etc.
+const getTimeAgo = (dateStr: string) => {
+  const diff = (new Date().getTime() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+};
+
+// Map notification types to icons and colors
+const NOTIFICATION_STYLES: Record<string, any> = {
+  new_enrollment: { icon: UserPlus, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+  content_review: { icon: AlertCircle, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+  achievement: { icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+  system: { icon: CheckCheck, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-800' }
+};
 
 interface AdminNotificationsPanelProps {
   onClose: () => void;
+  notifications: any[];       // <--- Now accepts data from parent
+  onMarkAllRead: () => void;  // <--- Now accepts action from parent
 }
 
-export function AdminNotificationsPanel({ onClose }: AdminNotificationsPanelProps) {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'new_enrollment',
-      title: 'New Student Enrollment',
-      message: 'Emily Johnson has enrolled in the platform',
-      time: '2 minutes ago',
-      read: false,
-      icon: UserPlus,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-    },
-    {
-      id: 2,
-      type: 'content_review',
-      title: 'Content Review Required',
-      message: 'Math Lesson 45 needs your review',
-      time: '15 minutes ago',
-      read: false,
-      icon: AlertCircle,
-      color: 'text-yellow-500',
-      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-    },
-    {
-      id: 3,
-      type: 'achievement',
-      title: 'Student Achievement',
-      message: 'Sarah Martinez completed Advanced Reading module',
-      time: '1 hour ago',
-      read: false,
-      icon: TrendingUp,
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
-    },
-    {
-      id: 4,
-      type: 'system',
-      title: 'System Update',
-      message: 'Platform update completed successfully',
-      time: '2 hours ago',
-      read: true,
-      icon: CheckCheck,
-      color: 'text-slate-500',
-      bgColor: 'bg-slate-50 dark:bg-slate-800',
-    },
-  ]);
-
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-  };
-
+export function AdminNotificationsPanel({ onClose, notifications, onMarkAllRead }: AdminNotificationsPanelProps) {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -85,7 +52,7 @@ export function AdminNotificationsPanel({ onClose }: AdminNotificationsPanelProp
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={markAllAsRead}
+                onClick={onMarkAllRead}
                 className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700"
               >
                 Mark all as read
@@ -94,41 +61,50 @@ export function AdminNotificationsPanel({ onClose }: AdminNotificationsPanelProp
           </div>
         </div>
 
-        {/* Notifications List */}
+        {/* List */}
         <div className="flex-1 overflow-y-auto">
-          {notifications.map((notification) => {
-            const Icon = notification.icon;
-            return (
-              <div
-                key={notification.id}
-                className={`p-4 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${
-                  !notification.read ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''
-                }`}
-              >
-                <div className="flex gap-3">
-                  <div className={`w-10 h-10 rounded-lg ${notification.bgColor} flex items-center justify-center flex-shrink-0`}>
-                    <Icon className={`w-5 h-5 ${notification.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className="text-sm text-slate-800 dark:text-slate-100">
-                        {notification.title}
-                      </h3>
-                      {!notification.read && (
-                        <div className="w-2 h-2 rounded-full bg-purple-500 mt-1 flex-shrink-0"></div>
-                      )}
+          {notifications.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              No notifications yet
+            </div>
+          ) : (
+            notifications.map((notification) => {
+              // Fallback to 'system' style if type is unknown
+              const style = NOTIFICATION_STYLES[notification.type] || NOTIFICATION_STYLES['system'];
+              const Icon = style.icon;
+              
+              return (
+                <div
+                  key={notification._id}
+                  className={`p-4 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                    !notification.read ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''
+                  }`}
+                >
+                  <div className="flex gap-3">
+                    <div className={`w-10 h-10 rounded-lg ${style.bg} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-5 h-5 ${style.color}`} />
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500">
-                      {notification.time}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                          {notification.title}
+                        </h3>
+                        {!notification.read && (
+                          <div className="w-2 h-2 rounded-full bg-purple-500 mt-1 flex-shrink-0"></div>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500">
+                        {getTimeAgo(notification.createdAt)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Footer */}

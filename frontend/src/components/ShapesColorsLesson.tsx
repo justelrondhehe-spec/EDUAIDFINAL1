@@ -1,283 +1,658 @@
 // frontend/src/components/ShapesColorsLesson.tsx
-import React, { useEffect, useRef, useState } from "react";
+import { ArrowLeft, CheckCircle, Circle, Square, Triangle, Heart, Star, Pentagon, Hexagon, Diamond, Search, Sparkles, Palette, Trophy, Award } from 'lucide-react';
+import { Button } from './ui/button';
+import { useState, useEffect } from 'react';
+import { useApp } from '../contexts/AppContext';
 import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle,
-  Clock,
-  Sparkles,
-} from "lucide-react";
-import { useApp } from "../contexts/AppContext";
-import { Button } from "./ui/button";
-import { Progress } from "./ui/progress";
-import { Page } from "../App";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 interface ShapesColorsLessonProps {
-  onBackToLessons: () => void;
-  onNavigate?: (page: Page) => void;
+  onBack: () => void;
 }
 
-const LESSON_ID = 4; // Shapes & Colors lesson id in your seeds
-
-export const ShapesColorsLesson: React.FC<ShapesColorsLessonProps> = ({
-  onBackToLessons,
-  onNavigate,
-}) => {
-  const { lessonProgress, startLesson, updateLessonProgress, completeLesson } =
-    useApp();
-
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const totalSteps = 3;
-  const hasStarted = useRef(false);
-  const hasCompleted = useRef(false);
-
-  // Start the lesson once when the user opens this page
+export function ShapesColorsLesson({ onBack }: ShapesColorsLessonProps) {
+  const { lessonProgress, completeLesson, startLesson, saveAndExitLesson } = useApp();
+  const [foundShapes, setFoundShapes] = useState<string[]>([]);
+  const [selectedColor1, setSelectedColor1] = useState<string | null>(null);
+  const [selectedColor2, setSelectedColor2] = useState<string | null>(null);
+  const [mixedColor, setMixedColor] = useState<string | null>(null);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  
+  const lessonId = 4; // Shapes & Colors lesson ID
+  const lesson = lessonProgress[lessonId];
+  const isLessonCompleted = lesson?.completed || false;
+  
+  // Start lesson when component mounts if not started
   useEffect(() => {
-    if (!hasStarted.current) {
-      startLesson(LESSON_ID);
-      hasStarted.current = true;
+    if (!lesson && !isLessonCompleted) {
+      startLesson(lessonId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Helper: compute percentage from step (1..totalSteps)
-  const stepToPercent = (step: number) =>
-    Math.round((step / totalSteps) * 100);
-
-  // Read existing progress (in case user comes back later)
-  const lp = lessonProgress[LESSON_ID];
-  const headerProgress =
-    typeof lp?.progressPercent === "number"
-      ? lp.progressPercent
-      : stepToPercent(currentStep);
-
-  const handleNext = () => {
-    if (currentStep >= totalSteps) return;
-    const next = currentStep + 1;
-    setCurrentStep(next);
-    // Push progress ONLY when user moves step
-    updateLessonProgress(LESSON_ID, stepToPercent(next));
+  
+  const handleSaveAndExit = () => {
+    // Calculate progress based on completed sections
+    const progress = 33; // Can be made dynamic based on actual completion
+    saveAndExitLesson(lessonId, progress);
+    onBack();
   };
 
-  const handlePrev = () => {
-    if (currentStep <= 1) return;
-    const prev = currentStep - 1;
-    setCurrentStep(prev);
-    updateLessonProgress(LESSON_ID, stepToPercent(prev));
-  };
+  const shapes = [
+    {
+      name: 'Circle',
+      icon: Circle,
+      description: 'A perfectly round shape. It has no straight sides and no corners.',
+      examples: ['Basketball', 'Apple']
+    },
+    {
+      name: 'Square',
+      icon: Square,
+      description: 'A shape with four straight sides that are all the exact same length. It has four corners.',
+      examples: ['Window', 'Dice']
+    },
+    {
+      name: 'Triangle',
+      icon: Triangle,
+      description: 'A shape with three straight sides and three corners.',
+      examples: ['Umbrella', 'Hanger']
+    },
+    {
+      name: 'Rectangle',
+      icon: Square,
+      description: 'A shape with four straight sides and four corners. It has two long sides and two short sides.',
+      examples: ['TV', 'Door']
+    },
+    {
+      name: 'Oval',
+      icon: Circle,
+      description: 'An egg-like or stretched circle shape.',
+      examples: ['Egg', 'Football']
+    },
+    {
+      name: 'Heart',
+      icon: Heart,
+      description: 'A shape representing love, with two rounded top parts and a point at the bottom.',
+      examples: ['Strawberry', 'Leaf']
+    },
+    {
+      name: 'Star',
+      icon: Star,
+      description: 'A shape with multiple points (often five) projecting from a center.',
+      examples: ['Starfish', 'Sky star']
+    },
+    {
+      name: 'Pentagon',
+      icon: Pentagon,
+      description: 'A shape with five straight sides and five corners.',
+      examples: ['Diamond', 'Soccer ball panel']
+    },
+    {
+      name: 'Hexagon',
+      icon: Hexagon,
+      description: 'A shape with six straight sides and six corners.',
+      examples: ['Stop sign', 'Metal nut']
+    },
+    {
+      name: 'Rhombus',
+      icon: Diamond,
+      description: 'A shape with four straight sides of the same length, but it is "slanted." (Also called a diamond).',
+      examples: ['Kite', 'Road sign']
+    }
+  ];
 
-  const handleCompleteLesson = async () => {
-    if (hasCompleted.current) return;
-    hasCompleted.current = true;
+  const primaryColors = [
+    {
+      name: 'Red',
+      color: 'bg-red-500',
+      textColor: 'text-white',
+      description: 'One of the three original colors that cannot be created by mixing other colors.'
+    },
+    {
+      name: 'Yellow',
+      color: 'bg-yellow-400',
+      textColor: 'text-slate-900',
+      description: 'One of the three original colors that cannot be created by mixing other colors.'
+    },
+    {
+      name: 'Blue',
+      color: 'bg-blue-500',
+      textColor: 'text-white',
+      description: 'One of the three original colors that cannot be created by mixing other colors.'
+    }
+  ];
 
-    // push 100% and mark as completed
-    await completeLesson(LESSON_ID);
+  const secondaryColors = [
+    {
+      name: 'Green',
+      color: 'bg-green-500',
+      textColor: 'text-white',
+      mix: 'Blue + Yellow',
+      description: 'Created by mixing blue and yellow together.'
+    },
+    {
+      name: 'Orange',
+      color: 'bg-orange-500',
+      textColor: 'text-white',
+      mix: 'Red + Yellow',
+      description: 'Created by mixing red and yellow together.'
+    },
+    {
+      name: 'Purple / Violet',
+      color: 'bg-purple-500',
+      textColor: 'text-white',
+      mix: 'Red + Blue',
+      description: 'Created by mixing red and blue together.'
+    }
+  ];
 
-    // Optionally jump them to Activities page where the challenge is unlocked
-    if (onNavigate) {
-      onNavigate("activities");
+  const tertiaryColors = [
+    {
+      name: 'Yellow-Orange',
+      color: 'bg-gradient-to-r from-yellow-400 to-orange-500',
+      textColor: 'text-white',
+      mix: 'Yellow + Orange'
+    },
+    {
+      name: 'Red-Orange',
+      color: 'bg-gradient-to-r from-red-500 to-orange-600',
+      textColor: 'text-white',
+      mix: 'Red + Orange'
+    },
+    {
+      name: 'Red-Violet',
+      color: 'bg-gradient-to-r from-red-500 to-purple-600',
+      textColor: 'text-white',
+      mix: 'Red + Violet'
+    },
+    {
+      name: 'Blue-Violet',
+      color: 'bg-gradient-to-r from-blue-500 to-purple-600',
+      textColor: 'text-white',
+      mix: 'Blue + Violet'
+    },
+    {
+      name: 'Blue-Green',
+      color: 'bg-gradient-to-r from-blue-500 to-green-500',
+      textColor: 'text-white',
+      mix: 'Blue + Green'
+    },
+    {
+      name: 'Yellow-Green',
+      color: 'bg-gradient-to-r from-yellow-400 to-green-500',
+      textColor: 'text-slate-900',
+      mix: 'Yellow + Green'
+    }
+  ];
+
+  // Shape Hunt Activity Items
+  const shapeHuntItems = [
+    { shape: 'Circle', emoji: '🏀', name: 'Basketball' },
+    { shape: 'Square', emoji: '📦', name: 'Box' },
+    { shape: 'Triangle', emoji: '🔺', name: 'Triangle Sign' },
+    { shape: 'Heart', emoji: '❤️', name: 'Heart' },
+    { shape: 'Star', emoji: '⭐', name: 'Star' },
+    { shape: 'Rectangle', emoji: '📱', name: 'Phone' },
+  ];
+
+  const toggleShapeFound = (shapeName: string) => {
+    if (foundShapes.includes(shapeName)) {
+      setFoundShapes(foundShapes.filter(s => s !== shapeName));
+    } else {
+      setFoundShapes([...foundShapes, shapeName]);
     }
   };
 
-  // ---------- Simple content for three steps ----------
+  // Color Mixing Activity
+  const colorMixingOptions = [
+    { name: 'Red', value: 'red', bgClass: 'bg-red-500' },
+    { name: 'Yellow', value: 'yellow', bgClass: 'bg-yellow-400' },
+    { name: 'Blue', value: 'blue', bgClass: 'bg-blue-500' },
+  ];
 
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <section className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Step 1 • Meet the Shapes
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400">
-              Let&apos;s explore four basic shapes. Say their names and point to
-              objects around you that match each shape.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[
-                { name: "Square", color: "bg-pink-400" },
-                { name: "Circle", color: "bg-sky-400" },
-                { name: "Triangle", color: "bg-amber-400" },
-                { name: "Rectangle", color: "bg-violet-400" },
-              ].map((shape) => (
-                <div
-                  key={shape.name}
-                  className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col items-center gap-3"
-                >
-                  <div
-                    className={`w-20 h-20 rounded-2xl ${shape.color}`}
-                  />
-                  <div className="font-medium text-slate-800 dark:text-slate-100">
-                    {shape.name}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        );
-      case 2:
-        return (
-          <section className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Step 2 • Match Shapes & Colors
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400">
-              Look at each card and say both the shape and its color. Your
-              learner can clap when they get a match right!
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { label: "Red Circle", color: "bg-rose-400", shape: "●" },
-                { label: "Blue Square", color: "bg-sky-400", shape: "■" },
-                { label: "Yellow Triangle", color: "bg-amber-400", shape: "▲" },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 flex items-center gap-4"
-                >
-                  <div
-                    className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl text-white ${item.color}`}
-                  >
-                    {item.shape}
-                  </div>
-                  <div>
-                    <div className="font-medium text-slate-800 dark:text-slate-100">
-                      {item.label}
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Ask: &quot;Can you find something that is {item.label}
-                      ?&quot;
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        );
-      case 3:
-      default:
-        return (
-          <section className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Step 3 • Mini Challenge
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400">
-              Point to each picture and ask: &quot;What shape is this? What
-              color is it?&quot; Encourage your learner to answer in full
-              sentences.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-                <h3 className="font-medium text-slate-800 dark:text-slate-100 mb-2">
-                  Around the Room
-                </h3>
-                <ul className="list-disc pl-5 text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                  <li>Find 3 squares and 3 circles.</li>
-                  <li>Sort them by color (warm vs cool colors).</li>
-                  <li>Count how many of each you found.</li>
-                </ul>
-              </div>
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-                <h3 className="font-medium text-slate-800 dark:text-slate-100 mb-2">
-                  Drawing Time
-                </h3>
-                <ul className="list-disc pl-5 text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                  <li>Draw one big shape for each type.</li>
-                  <li>Color each shape with a different bright color.</li>
-                  <li>Have your learner explain their drawing.</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-        );
+  const handleColorMix = () => {
+    if (!selectedColor1 || !selectedColor2) return;
+
+    const colors = [selectedColor1, selectedColor2].sort();
+    
+    if (colors[0] === 'blue' && colors[1] === 'yellow') {
+      setMixedColor('Green');
+    } else if (colors[0] === 'red' && colors[1] === 'yellow') {
+      setMixedColor('Orange');
+    } else if (colors[0] === 'blue' && colors[1] === 'red') {
+      setMixedColor('Purple');
+    } else if (colors[0] === colors[1]) {
+      setMixedColor(`${selectedColor1} (same color)`);
     }
+  };
+
+  const resetColorMixing = () => {
+    setSelectedColor1(null);
+    setSelectedColor2(null);
+    setMixedColor(null);
+  };
+
+  const getMixedColorClass = () => {
+    if (!mixedColor) return '';
+    if (mixedColor === 'Green') return 'bg-green-500';
+    if (mixedColor === 'Orange') return 'bg-orange-500';
+    if (mixedColor === 'Purple') return 'bg-purple-500';
+    if (mixedColor.includes('red')) return 'bg-red-500';
+    if (mixedColor.includes('yellow')) return 'bg-yellow-400';
+    if (mixedColor.includes('blue')) return 'bg-blue-500';
+    return 'bg-slate-400';
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      {/* Back link */}
-      <button
-        onClick={onBackToLessons}
-        className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 mb-2"
-      >
-        <ArrowLeft className="w-4 h-4 mr-1" />
-        Back to Lessons
-      </button>
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="outline" onClick={onBack} className="dark:bg-slate-800 dark:border-slate-700">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Lessons
+        </Button>
+      </div>
 
-      {/* Header card */}
-      <div className="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500 rounded-3xl p-8 text-white shadow-xl flex flex-col md:flex-row gap-8">
-        <div className="flex-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 rounded-full text-xs mb-3">
-            <span className="font-medium">Shapes &amp; Colors</span>
-            <span className="w-1 h-1 rounded-full bg-white/60" />
-            <span>Level: Beginner</span>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-semibold mb-3">
-            Shapes &amp; Colors Adventure
-          </h1>
-          <p className="text-sm md:text-base text-white/90 mb-4 max-w-xl">
-            Discover circles, squares, triangles, and rectangles using bright
-            colors and playful activities.
-          </p>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
-            <span className="inline-flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              ~20 minutes
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Perfect for early learners
-            </span>
+      {/* Lesson Title */}
+      <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-3xl p-8 shadow-2xl">
+        <div className="flex items-center gap-6 mb-6">
+          <div className="text-6xl">🎨</div>
+          <div className="flex-1 text-white">
+            <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm mb-3">
+              Visual Arts - Beginner
+            </div>
+            <h1 className="text-white mb-2">Shapes & Colors</h1>
+            <p className="text-white/90">Discover the wonderful world of shapes and colors! Learn to identify, name, and create with different shapes and colors.</p>
           </div>
         </div>
+        
+        {/* Progress Bar */}
+        {lesson && !isLessonCompleted && (
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <div className="flex items-center justify-between text-sm text-white mb-2">
+              <span>Lesson Progress</span>
+              <span>{lesson.progressPercent}%</span>
+            </div>
+            <div className="w-full bg-white/20 rounded-full h-2">
+              <div
+                className="bg-white h-2 rounded-full transition-all duration-500"
+                style={{ width: `${lesson.progressPercent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-3 text-xs text-white/80">
+              <span>Started: {new Date(lesson.startedDate).toLocaleDateString()}</span>
+              <span>Expires: {new Date(lesson.expirationDate).toLocaleDateString()}</span>
+            </div>
+          </div>
+        )}
+      </div>
 
-        <div className="w-full md:w-64 bg-white/10 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3 text-sm">
-            <span>Lesson Progress</span>
-            <span className="font-semibold">{headerProgress}%</span>
-          </div>
-          <Progress value={headerProgress} className="h-2 bg-white/20" />
-          <div className="mt-3 text-xs text-white/80">
-            Step {currentStep} of {totalSteps}
-          </div>
+      {/* Part 1: The Shapes */}
+      <div>
+        <div className="mb-6">
+          <h2 className="text-slate-800 dark:text-slate-100 mb-2">Part 1: The Shapes</h2>
+          <p className="text-slate-600 dark:text-slate-400">Learn about different geometric shapes and their properties.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {shapes.map((shape, index) => {
+            const Icon = shape.icon;
+            return (
+              <div
+                key={index}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-xl transition-all group"
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <Icon className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-slate-800 dark:text-slate-100 mb-1">{shape.name}</h3>
+                  </div>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">{shape.description}</p>
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-500 dark:text-slate-500">Examples:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {shape.examples.map((example, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-slate-700 dark:to-slate-700 text-pink-700 dark:text-pink-300 rounded-lg text-sm border border-pink-200 dark:border-slate-600"
+                      >
+                        {example}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Step content */}
-      <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 md:p-8 shadow-lg space-y-8">
-        {renderStepContent()}
-
-        {/* Navigation + complete button */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-            Step {currentStep} of {totalSteps}
+      {/* Activity 1: Shape Hunt */}
+      <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-3xl p-8 shadow-2xl">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <Search className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-white">Activity 1: Shape Hunt</h2>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handlePrev}
-              disabled={currentStep === 1}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Previous
-            </Button>
-            {currentStep < totalSteps ? (
-              <Button onClick={handleNext}>
-                Next step
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleCompleteLesson}
-                className="bg-emerald-500 hover:bg-emerald-600"
+          <p className="text-white/90">Click on the items below to find shapes around you! Check off each shape as you identify it.</p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {shapeHuntItems.map((item, index) => {
+            const isFound = foundShapes.includes(item.shape);
+            return (
+              <button
+                key={index}
+                onClick={() => toggleShapeFound(item.shape)}
+                className={`p-6 rounded-2xl border-2 transition-all ${
+                  isFound
+                    ? 'bg-white border-white shadow-lg transform scale-105'
+                    : 'bg-white/10 backdrop-blur-sm border-white/30 hover:bg-white/20'
+                }`}
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Finish Lesson
-              </Button>
+                <div className="text-4xl mb-2">{item.emoji}</div>
+                <div className={`text-sm mb-1 ${isFound ? 'text-purple-600' : 'text-white'}`}>
+                  {item.name}
+                </div>
+                <div className={`text-xs ${isFound ? 'text-purple-500' : 'text-white/70'}`}>
+                  {item.shape}
+                </div>
+                {isFound && (
+                  <div className="mt-2">
+                    <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-4">
+          <div className="flex items-center justify-between text-white">
+            <span>Shapes Found: {foundShapes.length} / {shapeHuntItems.length}</span>
+            {foundShapes.length === shapeHuntItems.length && (
+              <div className="flex items-center gap-2 text-emerald-300">
+                <Sparkles className="w-5 h-5" />
+                <span>All shapes found! Great job!</span>
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Part 2: The Colors */}
+      <div>
+        <div className="mb-6">
+          <h2 className="text-slate-800 dark:text-slate-100 mb-2">Part 2: The Colors</h2>
+          <p className="text-slate-600 dark:text-slate-400">Understand primary, secondary, and tertiary colors and how they mix together.</p>
+        </div>
+
+        {/* Primary Colors */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-slate-800 dark:text-slate-100 mb-2">Primary Colors</h3>
+            <p className="text-slate-600 dark:text-slate-400">These are the three "original" colors. They cannot be created by mixing other colors together. All other colors are made from these.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {primaryColors.map((color, index) => (
+              <div
+                key={index}
+                className={`${color.color} rounded-2xl shadow-lg p-8 hover:shadow-xl transition-all transform hover:scale-105`}
+              >
+                <div className={`${color.textColor} space-y-3`}>
+                  <h3 className={color.textColor}>{color.name}</h3>
+                  <p className={`${color.textColor} opacity-90`}>{color.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Secondary Colors */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-slate-800 dark:text-slate-100 mb-2">Secondary Colors</h3>
+            <p className="text-slate-600 dark:text-slate-400">These are the colors you create by mixing two primary colors together.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {secondaryColors.map((color, index) => (
+              <div
+                key={index}
+                className={`${color.color} rounded-2xl shadow-lg p-8 hover:shadow-xl transition-all transform hover:scale-105`}
+              >
+                <div className={`${color.textColor} space-y-3`}>
+                  <h3 className={color.textColor}>{color.name}</h3>
+                  <div className={`${color.textColor} opacity-90 space-y-2`}>
+                    <p className="text-sm bg-black/10 backdrop-blur-sm rounded-lg px-3 py-2 inline-block">
+                      {color.mix}
+                    </p>
+                    <p>{color.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tertiary Colors */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-slate-800 dark:text-slate-100 mb-2">Tertiary Colors</h3>
+            <p className="text-slate-600 dark:text-slate-400">These are the colors you create by mixing one primary color with one secondary color that is next to it on the color wheel.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tertiaryColors.map((color, index) => (
+              <div
+                key={index}
+                className={`${color.color} rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105`}
+              >
+                <div className={`${color.textColor} space-y-2`}>
+                  <h4 className={color.textColor}>{color.name}</h4>
+                  <div className={`${color.textColor} text-sm opacity-90`}>
+                    <p className="bg-black/10 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
+                      {color.mix}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Activity 2: Color Mixing */}
+      <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-3xl p-8 shadow-2xl">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <Palette className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-white">Activity 2: Color Mixing</h2>
+          </div>
+          <p className="text-white/90">Mix two primary colors together to create a secondary color! Select two colors below.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {/* Color 1 Selection */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/30">
+            <h3 className="text-white mb-4">Color 1</h3>
+            <div className="space-y-3">
+              {colorMixingOptions.map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => setSelectedColor1(color.value)}
+                  className={`w-full p-4 rounded-xl border-2 transition-all ${
+                    selectedColor1 === color.value
+                      ? `${color.bgClass} border-white shadow-lg`
+                      : 'bg-white/20 border-white/30 hover:bg-white/30'
+                  }`}
+                >
+                  <div className={`${selectedColor1 === color.value ? 'text-white' : 'text-white/90'}`}>
+                    {color.name}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mix Result */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/30 flex flex-col items-center justify-center">
+            <div className="text-white mb-4 text-center">
+              <div className="text-4xl mb-2">🎨</div>
+              <div>Mixed Color</div>
+            </div>
+            {mixedColor ? (
+              <div className="space-y-4 w-full">
+                <div className={`w-full h-24 ${getMixedColorClass()} rounded-xl shadow-lg border-4 border-white`}></div>
+                <div className="text-white text-center">
+                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                    {mixedColor}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-white/70 text-center">
+                Select two colors to mix
+              </div>
+            )}
+          </div>
+
+          {/* Color 2 Selection */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/30">
+            <h3 className="text-white mb-4">Color 2</h3>
+            <div className="space-y-3">
+              {colorMixingOptions.map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => setSelectedColor2(color.value)}
+                  className={`w-full p-4 rounded-xl border-2 transition-all ${
+                    selectedColor2 === color.value
+                      ? `${color.bgClass} border-white shadow-lg`
+                      : 'bg-white/20 border-white/30 hover:bg-white/30'
+                  }`}
+                >
+                  <div className={`${selectedColor2 === color.value ? 'text-white' : 'text-white/90'}`}>
+                    {color.name}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-center">
+          <Button
+            onClick={handleColorMix}
+            disabled={!selectedColor1 || !selectedColor2}
+            className="bg-white text-cyan-600 hover:bg-cyan-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Mix Colors!
+          </Button>
+          <Button
+            onClick={resetColorMixing}
+            variant="outline"
+            className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+          >
+            Reset
+          </Button>
+        </div>
+      </div>
+
+      {/* Completion Section */}
+      <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-8 shadow-lg">
+        <div className="flex items-center gap-4 mb-4">
+          <CheckCircle className="w-12 h-12 text-white" />
+          <div className="text-white">
+            <h3 className="text-white mb-1">Ready to Complete This Lesson?</h3>
+            <p className="text-white/90">You've reviewed all the content. Mark this lesson as complete to unlock activities!</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          {!isLessonCompleted ? (
+            <>
+              <Button 
+                onClick={() => {
+                  completeLesson(lessonId);
+                  setShowCompletionDialog(true);
+                }}
+                className="bg-white text-emerald-600 hover:bg-emerald-50"
+              >
+                <Trophy className="w-4 h-4 mr-2" />
+                Complete Lesson
+              </Button>
+              <Button 
+                onClick={handleSaveAndExit}
+                variant="outline"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              >
+                Save & Exit
+              </Button>
+            </>
+          ) : (
+            <Button 
+              onClick={onBack}
+              className="bg-white text-emerald-600 hover:bg-emerald-50"
+            >
+              Back to Lessons
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Completion Dialog */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center">
+              <Trophy className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Lesson Completed! 🎉</DialogTitle>
+            <DialogDescription className="text-center">
+              Congratulations! You've successfully completed the Shapes & Colors lesson.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-xl p-4">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Award className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-emerald-700 dark:text-emerald-300">+100 Points Earned</span>
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400 text-center">
+                The Shapes & Colors Challenge activity is now available in the Activities section!
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 mt-4">
+            <Button 
+              onClick={() => {
+                setShowCompletionDialog(false);
+                onBack();
+              }}
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
+            >
+              Back to Lessons
+            </Button>
+            <Button 
+              onClick={() => setShowCompletionDialog(false)}
+              variant="outline"
+            >
+              Continue Reviewing
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
+}
+

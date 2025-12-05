@@ -14,15 +14,22 @@ export function AdminContent() {
   const load = async () => {
     setLoading(true);
     try {
-      const [lr, ar] = await Promise.all([lessonsApi.list(), activitiesApi.list()]);
+      const [lr, ar] = await Promise.all([
+        lessonsApi.list(),
+        activitiesApi.list(),
+      ]);
       setLessons(lr.data ?? []);
       setActivities(ar.data ?? []);
     } catch (e) {
       console.error('AdminContent.load error', e);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   // show create activity modal
   const [showCreateActivity, setShowCreateActivity] = useState(false);
@@ -62,6 +69,7 @@ export function AdminContent() {
 
   const onLessonCreated = async () => {
     // if you implement a CreateLessonModal, call this when it succeeds
+    setShowCreateLesson(false);
     window.dispatchEvent(new CustomEvent('data:changed'));
     await load();
   };
@@ -69,53 +77,117 @@ export function AdminContent() {
   return (
     <div className="p-6">
       <h2 className="text-2xl mb-4">Content Management</h2>
-      {loading ? <div>Loading content...</div> : (
+      {loading ? (
+        <div>Loading content...</div>
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Lessons */}
           <div className="bg-white dark:bg-slate-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg">Lessons</h3>
-              <Button onClick={() => setShowCreateLesson(true)}>Create Lesson</Button>
+              <Button
+                onClick={() => setShowCreateLesson(true)}
+                className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4"
+              >
+                Create Lesson
+              </Button>
               {showCreateLesson && (
-                <CreateLessonModal onClose={() => setShowCreateLesson(false)} onCreated={onLessonCreated} />
+                <CreateLessonModal
+                  onClose={() => setShowCreateLesson(false)}
+                  onCreated={onLessonCreated}
+                />
               )}
             </div>
-            {lessons.length === 0 ? <div>No lessons</div> : lessons.map(l => (
-              <div key={l._id ?? l.id} className="p-3 border-b flex justify-between items-center">
-                <div>
-                  <div className="font-semibold">{l.title}</div>
-                  <div className="text-xs text-slate-500">{l.description}</div>
+            {lessons.length === 0 ? (
+              <div>No lessons</div>
+            ) : (
+              lessons.map((l) => (
+                <div
+                  key={l._id ?? l.id}
+                  className="p-3 border-b flex justify-between items-center"
+                >
+                  <div>
+                    <div className="font-semibold">{l.title}</div>
+                    <div className="text-xs text-slate-500">
+                      {l.description}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        alert('Edit lesson UI not implemented')
+                      }
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-red-500 text-white"
+                      onClick={() => deleteLesson(l._id ?? l.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => alert('Edit lesson UI not implemented')}>Edit</Button>
-                  <Button size="sm" className="bg-red-500 text-white" onClick={() => deleteLesson(l._id ?? l.id)}>Delete</Button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
+
+          {/* Activities */}
           <div className="bg-white dark:bg-slate-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg">Activities</h3>
-              <button onClick={() => setShowCreateActivity(true)}>Create Activity</button>
+              <Button
+                onClick={() => setShowCreateActivity(true)}
+                className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4"
+              >
+                Create Activity
+              </Button>
               {showCreateActivity && (
-                <CreateActivityModal onClose={() => setShowCreateActivity(false)} onCreated={onActivityCreated} />
+                <CreateActivityModal
+                  onClose={() => setShowCreateActivity(false)}
+                  onCreated={onActivityCreated}
+                />
               )}
             </div>
-            {activities.length === 0 ? <div>No activities</div> : activities.map(a => (
-              <div key={a._id ?? a.id} className="p-3 border-b flex justify-between items-center">
-                <div>
-                  <div className="font-semibold">{a.title}</div>
-                  <div className="text-xs text-slate-500">{a.description}</div>
+            {activities.length === 0 ? (
+              <div>No activities</div>
+            ) : (
+              activities.map((a) => (
+                <div
+                  key={a._id ?? a.id}
+                  className="p-3 border-b flex justify-between items-center"
+                >
+                  <div>
+                    <div className="font-semibold">{a.title}</div>
+                    <div className="text-xs text-slate-500">
+                      {a.description}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        alert('Edit activity UI not implemented')
+                      }
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-red-500 text-white"
+                      onClick={() => deleteActivity(a._id ?? a.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => alert('Edit activity UI not implemented')}>Edit</Button>
-                  <Button size="sm" className="bg-red-500 text-white" onClick={() => deleteActivity(a._id ?? a.id)}>Delete</Button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}
     </div>
   );
 }
-

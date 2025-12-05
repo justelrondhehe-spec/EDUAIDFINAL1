@@ -1,41 +1,22 @@
-// backend/routes/adminRoutes.js
 import express from 'express';
 import User from '../models/User.js';
 import * as adminController from '../controllers/adminController.js';
-import { protect } from '../middleware/authMiddleware.js'; // your protect middleware
+import { protect } from '../middleware/authMiddleware.js';
 import { sendEmail } from "../utils/email.js";
 
 const router = express.Router();
 
-// ⬇️ Add this block somewhere after router is created
-
-// POST /api/admin/test-email
-// Quick way to verify SMTP + email.js config.
-// Body (JSON):
-//   {
-//     "to": "your@email.com",   // optional; falls back to TEST_EMAIL_TO env
-//     "subject": "optional",
-//     "message": "optional message body"
-//   }
+// --- Test Email Route ---
 router.post("/test-email", async (req, res) => {
   try {
     const { to, subject, message } = req.body || {};
-
-    // If no `to` field, fall back to env var
     const target = to || process.env.TEST_EMAIL_TO;
-    if (!target) {
-      return res.status(400).json({
-        error:
-          "Please provide `to` in the request body or set TEST_EMAIL_TO in your .env file.",
-      });
-    }
+    if (!target) return res.status(400).json({ error: "No recipient specified." });
 
     await sendEmail({
       to: target,
       subject: subject || "EduAid – Test Email",
-      text:
-        message ||
-        "This is a test email from the EduAid backend. If you can read this, SMTP is working! 🎉",
+      text: message || "SMTP is working! 🎉",
     });
 
     res.json({ success: true });
@@ -45,7 +26,7 @@ router.post("/test-email", async (req, res) => {
   }
 });
 
-// admin guard middleware
+// --- Middleware ---
 const adminOnly = (req, res, next) => {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin only' });
@@ -53,30 +34,36 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
+// =================================================================
+// PUBLIC ROUTES (No Login Required - Good for Testing)
+// =================================================================
+
 router.get('/dashboard', adminController.dashboard);
 
+// ✅ MOVED HERE: Now you can hit this without a token!
+router.post('/notifications/test', adminController.createTestNotification);
 
+
+// =================================================================
+// PROTECTED ROUTES (Login + Admin Role Required)
+// =================================================================
+// Everything below this line will require a valid Bearer Token
 router.use(protect, adminOnly);
 
-// GET /admin/users
-router.get('/users', async (req, res) => {
-  const users = await User.find().select('-password');
-  res.json({ users });
-});
-
-// PUT /admin/users/:id/role
+// User Management
+router.get('/users', adminController.getUsers); 
 router.put('/users/:id/role', async (req, res) => {
   const { role } = req.body;
   const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
   res.json(user);
 });
-
-// DELETE /admin/users/:id
 router.delete('/users/:id', async (req, res) => {
   await User.findByIdAndDelete(req.params.id);
   res.json({ success: true });
 });
 
-router.get('/users', adminController.getUsers);
+// Notifications (Real functionality stays protected)
+router.get('/notifications', adminController.getNotifications);
+router.put('/notifications/read-all', adminController.markAllRead);
 
 export default router;

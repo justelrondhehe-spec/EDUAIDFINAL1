@@ -6,8 +6,15 @@ import React, {
   ReactNode,
   useEffect,
 } from "react";
-import { lessonsData as lessonsFixture } from "../data/lessonsData";
-import { activitiesData as activitiesFixture } from "../data/activitiesData";
+import {
+  lessonsData as lessonsFixture,
+  Lesson,
+} from "../data/lessonsData";
+import {
+  activitiesData as activitiesFixture,
+  Activity,
+} from "../data/activitiesData";
+
 import client from "../api/client";
 import { useAuth } from "./AuthContext";
 
@@ -88,8 +95,9 @@ interface AppContextType {
   achievementsEarned: number;
   recentActivities: RecentActivity[];
 
-  lessons: any[];
-  activities: any[];
+  lessons: Lesson[];
+  activities: Activity[];
+
 
   // simple auth stubs (kept for backwards compatibility)
   isAuthenticated: boolean;
@@ -143,8 +151,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   } | null>(null);
 
   // Content loaded from server (admin-created) - fallback to fixtures
-  const [lessons, setLessons] = useState(() => lessonsFixture ?? []);
-  const [activities, setActivities] = useState(() => activitiesFixture ?? []);
+  const [lessons, setLessons] = useState<Lesson[]>(() => lessonsFixture ?? []);
+  const [activities, setActivities] = useState<Activity[]>(() => activitiesFixture ?? []);
+
 
   const [userId, setUserId] = useState<string | null>(null);
 

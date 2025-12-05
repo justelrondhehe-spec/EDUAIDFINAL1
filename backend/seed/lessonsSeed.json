@@ -181,5 +181,37 @@
       ]
     },
     "published": true
+  },
+  {
+    "id": 7,
+    "title": "Our Emotions",
+    "description": "Name and recognize four core feelings (happy, sad, angry, scared), understand what causes them, and learn calming strategies.",
+    "category": "Social & Emotional Learning",
+    "duration": "20 min",
+    "progress": 0,
+    "status": "not-started",
+    "difficulty": "Beginner",
+    "rating": 4.8,
+    "icon": "😊",
+    "color": "from-rose-500 to-pink-600",
+    "lessons": 8,
+    "completedLessons": 0,
+    "content": {
+      "introduction": "Learners explore big feelings, what might cause them, and simple ways to calm their bodies and minds.",
+      "objectives": [
+        "Name four core feelings: happy, sad, angry, and scared",
+        "Match facial expressions to different emotions",
+        "Identify simple triggers that might cause each feeling",
+        "Practice a few calming strategies such as deep breathing or counting"
+      ],
+      "activities": [
+        "Feelings faces matching game",
+        "Story time with 'How did they feel?' questions",
+        "Create a simple emotions chart for home or class",
+        "Practice calming strategies in a 'cool-down' corner",
+        "Play the Our Emotions Activity in EduAid"
+      ]
+    },
+    "published": true
   }
 ]

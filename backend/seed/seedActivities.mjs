@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import Activity from "./models/Activity.js";
+import Activity from "../models/Activity.js";
 
 dotenv.config();
 

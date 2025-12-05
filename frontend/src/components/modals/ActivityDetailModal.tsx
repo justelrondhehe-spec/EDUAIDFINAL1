@@ -1,27 +1,17 @@
+// frontend/src/components/modals/ActivityDetailModal.tsx
 import { X, Play, Calendar, Award } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
+import { Activity } from '../../data/activitiesData';
 
-interface ActivityLike {
+// Base on your real Activity type, but keep it flexible for backend data.
+export interface ActivityLike extends Partial<Activity> {
   _id?: string;
-  id?: number;
-  title?: string;
-  description?: string;
-  type?: string;
-  subject?: string;
+  // allow nulls here because ActivityScore can produce them
   dueDate?: string | Date | null;
   dueTimestamp?: number | null;
-  status?: 'pending' | 'in-progress' | 'completed' | string;
-  priority?: 'high' | 'medium' | 'low' | string;
-  points?: number;
-  progress?: number;
-  totalQuestions?: number;
-  grade?: string;
-  score?: number;
   completedDate?: string | Date | null;
-  icon?: string;
-  color?: string;
 }
 
 interface ActivityDetailModalProps {
@@ -30,20 +20,30 @@ interface ActivityDetailModalProps {
   onStart: () => void;
 }
 
-export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDetailModalProps) {
+export function ActivityDetailModal({
+  activity,
+  onClose,
+  onStart,
+}: ActivityDetailModalProps) {
   const color = activity.color || 'from-purple-500 to-pink-600';
   const title = activity.title ?? 'Untitled Activity';
-  const description = activity.description ?? 'No description has been added for this activity yet.';
+  const description =
+    activity.description ??
+    'No description has been added for this activity yet.';
 
   const totalQuestions = activity.totalQuestions ?? 0;
   const rawProgress = activity.progress ?? 0;
-  const progressPercent = totalQuestions > 0 ? (rawProgress / totalQuestions) * 100 : 0;
+  const progressPercent =
+    totalQuestions > 0 ? (rawProgress / totalQuestions) * 100 : 0;
 
   // derive a nice due date string
   let dueDateLabel = 'No due date';
   if (activity.dueDate instanceof Date) {
     dueDateLabel = activity.dueDate.toLocaleDateString();
-  } else if (typeof activity.dueDate === 'string' && activity.dueDate.trim() !== '') {
+  } else if (
+    typeof activity.dueDate === 'string' &&
+    activity.dueDate.trim() !== ''
+  ) {
     // allow values like "This Week" or ISO dates
     const maybeDate = new Date(activity.dueDate);
     if (!Number.isNaN(maybeDate.getTime()) && activity.dueDate.includes('-')) {
@@ -72,13 +72,15 @@ export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDeta
       badgeVariant = 'outline';
   }
 
-  const status = activity.status ?? 'pending';
-  const scorePercent = typeof activity.score === 'number' ? activity.score : undefined;
+  const status = (activity.status as Activity['status']) ?? 'pending';
+  const scorePercent =
+    typeof activity.score === 'number' ? activity.score : undefined;
 
   let gradeLabel = activity.grade;
   if (!gradeLabel && typeof scorePercent === 'number') {
     const s = scorePercent;
-    gradeLabel = s >= 95 ? 'A+' : s >= 90 ? 'A' : s >= 85 ? 'B+' : s >= 80 ? 'B' : s >= 70 ? 'C' : 'D';
+    gradeLabel =
+      s >= 95 ? 'A+' : s >= 90 ? 'A' : s >= 85 ? 'B+' : s >= 80 ? 'B' : s >= 70 ? 'C' : 'D';
   }
 
   let completedLabel: string | null = null;
@@ -86,7 +88,9 @@ export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDeta
     completedLabel = activity.completedDate.toLocaleString();
   } else if (typeof activity.completedDate === 'string') {
     const d = new Date(activity.completedDate);
-    completedLabel = Number.isNaN(d.getTime()) ? activity.completedDate : d.toLocaleString();
+    completedLabel = Number.isNaN(d.getTime())
+      ? activity.completedDate
+      : d.toLocaleString();
   }
 
   return (
@@ -137,14 +141,18 @@ export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDeta
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">Due Date</span>
               </div>
-              <div className="text-slate-800 dark:text-slate-200">{dueDateLabel}</div>
+              <div className="text-slate-800 dark:text-slate-200">
+                {dueDateLabel}
+              </div>
             </div>
             <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 rounded-xl">
               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-1">
                 <Award className="w-4 h-4" />
                 <span className="text-sm">Points</span>
               </div>
-              <div className="text-slate-800 dark:text-slate-200">{activity.points ?? 0} points</div>
+              <div className="text-slate-800 dark:text-slate-200">
+                {activity.points ?? 0} points
+              </div>
             </div>
           </div>
 
@@ -152,7 +160,9 @@ export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDeta
           {status === 'in-progress' && totalQuestions > 0 && (
             <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800/30">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-slate-700 dark:text-slate-300">Your Progress</span>
+                <span className="text-slate-700 dark:text-slate-300">
+                  Your Progress
+                </span>
                 <span className="text-slate-800 dark:text-slate-200">
                   {rawProgress}/{totalQuestions} questions
                 </span>
@@ -166,20 +176,34 @@ export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDeta
             <div className="mb-6 p-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-xl">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                 <div>
-                  <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">Your Score</div>
-                  <div className="text-3xl text-emerald-600 dark:text-emerald-400">{scorePercent}%</div>
+                  <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">
+                    Your Score
+                  </div>
+                  <div className="text-3xl text-emerald-600 dark:text-emerald-400">
+                    {scorePercent}%
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">Grade</div>
-                  <div className="text-2xl text-slate-800 dark:text-slate-200">{gradeLabel}</div>
+                  <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">
+                    Grade
+                  </div>
+                  <div className="text-2xl text-slate-800 dark:text-slate-200">
+                    {gradeLabel}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">Points Earned</div>
-                  <div className="text-2xl text-slate-800 dark:text-slate-200">+{activity.points ?? 0}</div>
+                  <div className="text-slate-600 dark:text-slate-400 text-sm mb-1">
+                    Points Earned
+                  </div>
+                  <div className="text-2xl text-slate-800 dark:text-slate-200">
+                    +{activity.points ?? 0}
+                  </div>
                 </div>
               </div>
               {completedLabel && (
-                <div className="text-sm text-slate-600 dark:text-slate-400">Completed {completedLabel}</div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Completed {completedLabel}
+                </div>
               )}
             </div>
           )}
@@ -187,11 +211,17 @@ export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDeta
           {/* Overview (for pending/in-progress) */}
           {status !== 'completed' && totalQuestions > 0 && (
             <div className="mb-6">
-              <h3 className="text-slate-800 dark:text-slate-100 mb-3">Activity Overview</h3>
+              <h3 className="text-slate-800 dark:text-slate-100 mb-3">
+                Activity Overview
+              </h3>
               <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 rounded-xl">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Total Questions</span>
-                  <span className="text-slate-800 dark:text-slate-200">{totalQuestions}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Total Questions
+                  </span>
+                  <span className="text-slate-800 dark:text-slate-200">
+                    {totalQuestions}
+                  </span>
                 </div>
               </div>
             </div>
@@ -201,9 +231,13 @@ export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDeta
           {activity.priority && (
             <div className="mb-6">
               <div className="inline-flex items-center gap-2">
-                <span className="text-sm text-slate-600 dark:text-slate-400">Priority:</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400">
+                  Priority:
+                </span>
                 <Badge className={priorityBadgeClass} variant={badgeVariant}>
-                  {activity.priority.charAt(0).toUpperCase() + activity.priority.slice(1)}
+                  {activity.priority
+                    .charAt(0)
+                    .toUpperCase() + activity.priority.slice(1)}
                 </Badge>
               </div>
             </div>
@@ -216,15 +250,23 @@ export function ActivityDetailModal({ activity, onClose, onStart }: ActivityDeta
                 <Button onClick={onStart} variant="outline" className="flex-1">
                   View Feedback
                 </Button>
-                <Button onClick={onStart} className={`flex-1 bg-gradient-to-r ${color}`}>
+                <Button
+                  onClick={onStart}
+                  className={`flex-1 bg-gradient-to-r ${color}`}
+                >
                   Retake Activity
                 </Button>
               </>
             ) : (
               <>
-                <Button onClick={onStart} className={`flex-1 bg-gradient-to-r ${color}`}>
+                <Button
+                  onClick={onStart}
+                  className={`flex-1 bg-gradient-to-r ${color}`}
+                >
                   <Play className="w-4 h-4 mr-2" />
-                  {status === 'in-progress' ? 'Continue Activity' : 'Start Activity'}
+                  {status === 'in-progress'
+                    ? 'Continue Activity'
+                    : 'Start Activity'}
                 </Button>
                 <Button variant="outline" onClick={onClose}>
                   Close

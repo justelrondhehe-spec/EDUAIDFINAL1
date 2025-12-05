@@ -11,7 +11,6 @@ export function AdminSidebar({ currentPage, onNavigate }: AdminSidebarProps) {
     { id: 'students', label: 'Students', icon: Users },
     { id: 'content', label: 'Content', icon: FileText },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'help', label: 'Help', icon: HelpCircle },
   ];
 

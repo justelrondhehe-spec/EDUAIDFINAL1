@@ -1,6 +1,6 @@
 // frontend/src/components/settings/ProfileSettings.tsx
 import { useEffect, useState } from "react";
-import { ArrowLeft, User as UserIcon } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -29,8 +29,9 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
   // Load initial values from current user
   useEffect(() => {
     if (!user) return;
+
     const name = user.name || "";
-    const parts = name.split(" ");
+    const parts = name.trim().split(" ").filter(Boolean);
     const fn = user.firstName ?? parts[0] ?? "";
     const ln =
       user.lastName ??
@@ -53,8 +54,45 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
     }
   }, [user]);
 
+  // Clear success message when user starts editing again
+  useEffect(() => {
+    if (success) setSuccess(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstName, lastName, email, grade, phoneNumber, dateOfBirth, address, bio]);
+
+  const validate = () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      return "First name and last name are required.";
+    }
+    if (!email.trim()) {
+      return "Email address is required.";
+    }
+    // quick email pattern check (not perfect but good enough for UI)
+    const emailPattern = /\S+@\S+\.\S+/;
+    if (!emailPattern.test(email.trim())) {
+      return "Please enter a valid email address.";
+    }
+    return null;
+  };
+
   const handleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      setError("You must be logged in to update your profile.");
+      return;
+    }
+
+    const id = (user as any).id || (user as any)._id;
+    if (!id) {
+      setError("Unable to update profile: missing user ID.");
+      return;
+    }
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -63,24 +101,24 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
       const fullName = `${firstName} ${lastName}`.trim() || user.name;
 
       const payload: any = {
-        firstName,
-        lastName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         name: fullName,
-        email,
-        grade,
-        phoneNumber,
-        address,
-        bio,
+        email: email.trim(),
+        grade: grade.trim(),
+        phoneNumber: phoneNumber.trim(),
+        address: address.trim(),
+        bio: bio.trim(),
       };
+
       if (dateOfBirth) {
         payload.dateOfBirth = dateOfBirth; // backend converts to Date
       }
 
-      const id = user.id || user._id;
       const res = await client.put(`/users/${id}/profile`, payload);
-      const updated = res.data;
+      const updated = res.data ?? payload;
 
-      // update auth context + localStorage
+      // update auth context + localStorage (AuthContext should handle persistence)
       updateUser(updated);
 
       setSuccess("Profile updated successfully!");
@@ -124,6 +162,7 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
       <button
         onClick={onBack}
         className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 mb-4"
+        type="button"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Settings
