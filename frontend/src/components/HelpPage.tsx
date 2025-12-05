@@ -110,58 +110,6 @@ export function HelpPage({ currentSection, onNavigate }: HelpPageProps) {
         })}
       </div>
 
-      {/* Contact Support */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-              <Mail className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-slate-800 dark:text-slate-100">
-                Email Support
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
-                We'll respond within 24 hours
-              </p>
-            </div>
-          </div>
-          <p className="text-slate-600 dark:text-slate-400 mb-4">
-            support@eduaid.com
-          </p>
-          <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600">
-            <Mail className="w-4 h-4 mr-2" />
-            Send Email
-          </Button>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
-              <Phone className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-slate-800 dark:text-slate-100">
-                Phone Support
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Mon-Fri, 9AM - 5PM EST
-              </p>
-            </div>
-          </div>
-          <p className="text-slate-600 dark:text-slate-400 mb-4">
-            1-800-EDU-AID1
-          </p>
-          <Button className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600">
-            <Phone className="w-4 h-4 mr-2" />
-            Call Now
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ---------------- Getting Started ---------------- */
 
 function GettingStarted({ onBack }: { onBack: () => void }) {
