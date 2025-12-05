@@ -1,14 +1,10 @@
-// frontend/src/components/HelpPage.tsx
 import {
   Search,
   Book,
   MessageCircle,
   FileText,
-  Mail,
-  Phone,
   ChevronRight,
   ArrowLeft,
-  Download,
   CheckCircle,
 } from "lucide-react";
 import { Input } from "./ui/input";
@@ -109,6 +105,9 @@ export function HelpPage({ currentSection, onNavigate }: HelpPageProps) {
           );
         })}
       </div>
+    </div>
+  );
+}
 
 /* ---------------- Getting Started ---------------- */
 
@@ -171,8 +170,7 @@ function GettingStarted({ onBack }: { onBack: () => void }) {
         <h2 className="mb-4">Welcome to EduAid! 👋</h2>
         <p className="text-blue-100">
           We're excited to have you here. EduAid is your personalized learning
-          platform designed to help you succeed. Follow these simple steps to
-          get started and make the most of your learning experience.
+          platform designed to help you succeed.
         </p>
       </div>
 
@@ -184,7 +182,7 @@ function GettingStarted({ onBack }: { onBack: () => void }) {
         <div className="space-y-6">
           {steps.map((step, index) => (
             <div key={index} className="flex gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 text-white">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white">
                 {step.icon}
               </div>
               <div>
@@ -323,7 +321,6 @@ function UserGuide({ onBack }: { onBack: () => void }) {
                 </li>
               ))}
             </ul>
-            {/* Read Full Guide button removed so nothing is broken */}
           </div>
         ))}
       </div>
@@ -341,17 +338,17 @@ function FAQs({ onBack }: { onBack: () => void }) {
         {
           question: "How do I reset my password?",
           answer:
-            'Go to Settings > Privacy & Security > Password & Authentication. Enter your current password and choose a new one. Make sure your new password is at least 8 characters long and includes a mix of letters, numbers, and symbols.',
+            'Go to Settings > Privacy & Security > Password & Authentication. Enter your current password and choose a new one.',
         },
         {
           question: "Can I change my email address?",
           answer:
-            "Yes! Navigate to Settings > Profile Settings and update your email address. You'll need to verify your new email address before the change takes effect.",
+            "Yes! Navigate to Settings > Profile Settings and update your email address. You'll need to verify it first.",
         },
         {
           question: "How do I delete my account?",
           answer:
-            'Go to Settings > Privacy & Security and scroll to the Danger Zone section. Click "Delete Account" and follow the confirmation steps. Note that this action is permanent and cannot be undone.',
+            "Go to Settings > Privacy & Security and scroll to the Danger Zone. Click Delete Account and follow the confirmation steps.",
         },
       ],
     },
@@ -361,17 +358,17 @@ function FAQs({ onBack }: { onBack: () => void }) {
         {
           question: "How do I track my learning progress?",
           answer:
-            "Navigate to the Progress tab in the sidebar. Here you'll find detailed analytics about your completed lessons, activity scores, time spent learning, and achievement badges. You can also view weekly and monthly progress reports.",
+            "Use the Progress tab. View lessons completed, scores, achievements, and weekly/monthly insights.",
         },
         {
-          question: "What are achievements and how do I earn them?",
+          question: "What are achievements?",
           answer:
-            "Achievements are badges you earn by completing lessons, maintaining streaks, scoring high on activities, and reaching milestones. You can view all available achievements and your progress toward them in the Progress section.",
+            "Achievements are badges you earn for milestones—finishing lessons, streaks, high scores, etc.",
         },
         {
-          question: "Can I repeat lessons I've already completed?",
+          question: "Can I repeat lessons?",
           answer:
-            "Absolutely! You can revisit any lesson at any time to review the material and reinforce your learning. Your original completion status and scores will be preserved.",
+            "Yes! You can revisit any completed lesson anytime to review material.",
         },
       ],
     },
@@ -379,19 +376,19 @@ function FAQs({ onBack }: { onBack: () => void }) {
       category: "Guardians & Privacy",
       faqs: [
         {
-          question: "How do I add a guardian to my account?",
+          question: "How do I add a guardian?",
           answer:
-            'Go to Settings > Guardian Settings and click "Add Guardian". Enter their name, email, phone number, and relationship. You can then set specific permissions for what they can view and manage.',
+            "Go to Settings > Guardian Settings and click Add Guardian. Enter their info and set permissions.",
         },
         {
           question: "What can my guardians see?",
           answer:
-            "You control what your guardians can access through permission settings. They can typically view your progress reports, grades, attendance, and communicate with your teachers, but you can customize these permissions.",
+            "You control their access—progress reports, assignments, communication, etc.",
         },
         {
-          question: "Is my data private and secure?",
+          question: "Is my data private?",
           answer:
-            "Yes! We take your privacy seriously. Your data is encrypted and stored securely. You control who can see your information through privacy settings. Review our Privacy Policy for complete details.",
+            "All data is encrypted and protected. You control visibility in Privacy Settings.",
         },
       ],
     },
@@ -399,19 +396,19 @@ function FAQs({ onBack }: { onBack: () => void }) {
       category: "Technical Support",
       faqs: [
         {
-          question: "The app is running slowly. What should I do?",
+          question: "The app feels slow. What can I do?",
           answer:
-            "Try clearing your browser cache and cookies. If using dark mode or accessibility features, some older devices may experience slower performance. You can also try reducing animations in Settings > Accessibility Settings.",
+            "Try clearing browser cache, disabling animations, or switching devices.",
         },
         {
-          question: "How do I enable dark mode?",
+          question: "How do I turn on Dark Mode?",
           answer:
-            'Navigate to Settings > Accessibility Settings and toggle on "Dark Mode". This will change the entire app to a darker color scheme that\'s easier on the eyes in low-light conditions.',
+            "Go to Settings > Accessibility Settings and enable Dark Mode.",
         },
         {
           question: "What browsers are supported?",
           answer:
-            "EduAid works best on the latest versions of Chrome, Firefox, Safari, and Edge. We recommend keeping your browser updated for the best experience and security.",
+            "Latest versions of Chrome, Firefox, Safari, and Edge work best.",
         },
       ],
     },
@@ -458,15 +455,13 @@ function FAQs({ onBack }: { onBack: () => void }) {
             <h3 className="text-slate-800 dark:text-slate-100 mb-4">
               {category.category}
             </h3>
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion type="single" collapsible>
               {category.faqs.map((faq, faqIndex) => (
                 <AccordionItem
                   key={faqIndex}
                   value={`item-${catIndex}-${faqIndex}`}
                 >
-                  <AccordionTrigger className="text-left">
-                    {faq.question}
-                  </AccordionTrigger>
+                  <AccordionTrigger>{faq.question}</AccordionTrigger>
                   <AccordionContent className="text-slate-600 dark:text-slate-400">
                     {faq.answer}
                   </AccordionContent>
@@ -477,6 +472,7 @@ function FAQs({ onBack }: { onBack: () => void }) {
         ))}
       </div>
 
+      {/* Support Cards removed — nothing else here */}
     </div>
   );
 }
