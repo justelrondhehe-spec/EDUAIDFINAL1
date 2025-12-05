@@ -91,7 +91,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
 
     // Font family
     const fontMap: Record<FontStyle, string> = {
-      default: 'system-ui, -apple-system, sans-serif',
+      default: "system-ui, -apple-system, sans-serif",
       dyslexic: 'OpenDyslexic, "Comic Sans MS", sans-serif',
       sans: '"Inter", "Helvetica Neue", sans-serif',
       mono: '"JetBrains Mono", "Courier New", monospace',
@@ -106,8 +106,16 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
     if (settings.reduceAnimations) root.classList.add("reduce-animations");
     else root.classList.remove("reduce-animations");
 
-    // Color blindness mode (hook for CSS)
-    root.dataset.colorBlindMode = settings.colorBlindMode;
+    // Reading ruler hook (if you have CSS for it)
+    if (settings.readingRuler) root.classList.add("reading-ruler-enabled");
+    else root.classList.remove("reading-ruler-enabled");
+
+    // ✅ Color blindness mode (matches your CSS: [data-colorblind="..."])
+    if (settings.colorBlindMode === "none") {
+      root.removeAttribute("data-colorblind");
+    } else {
+      root.setAttribute("data-colorblind", settings.colorBlindMode);
+    }
 
     // Keyboard navigation & focus outline hooks
     if (settings.keyboardNavigation) root.classList.add("keyboard-nav");
@@ -142,7 +150,9 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
 export function useAccessibility() {
   const context = useContext(AccessibilityContext);
   if (!context) {
-    throw new Error("useAccessibility must be used within AccessibilityProvider");
+    throw new Error(
+      "useAccessibility must be used within AccessibilityProvider"
+    );
   }
   return context;
 }

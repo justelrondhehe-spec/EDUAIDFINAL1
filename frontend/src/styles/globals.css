@@ -219,3 +219,39 @@ body {
   --border: rgba(0, 0, 0, 0.5);
   filter: contrast(1.2);
 }
+
+/* === Color-blind filters === */
+/* These are approximations but they make the setting visibly do something. */
+
+:root[data-colorblind="none"] {
+  --cb-filter: none;
+}
+
+/* Simulate reduced red sensitivity */
+:root[data-colorblind="protanopia"] {
+  --cb-filter: contrast(1.1) saturate(0.9)
+    sepia(0.4) hue-rotate(-20deg);
+}
+
+/* Simulate reduced green sensitivity */
+:root[data-colorblind="deuteranopia"] {
+  --cb-filter: contrast(1.1) saturate(0.9)
+    sepia(0.4) hue-rotate(20deg);
+}
+
+/* Simulate reduced blue sensitivity */
+:root[data-colorblind="tritanopia"] {
+  --cb-filter: contrast(1.1) saturate(0.9)
+    sepia(0.5) hue-rotate(180deg);
+}
+
+/* Apply the filter to the whole app */
+body,
+#root {
+  filter: var(--cb-filter, none);
+}
+
+/* Optional: don't filter text selection / focus ring too harshly */
+::selection {
+  filter: none;
+}
