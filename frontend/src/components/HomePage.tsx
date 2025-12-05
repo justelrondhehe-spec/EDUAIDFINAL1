@@ -49,24 +49,24 @@ export function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToIn
 
   const testimonials = [
     {
-      name: 'Sarah Johnson',
-      role: 'Parent',
-      text: 'My daughter loves EduAid! Her reading skills have improved so much in just 3 months.',
-      avatar: 'SJ',
+      name: 'Alexander Novikov',
+      role: 'Father',
+      text: 'My daughter loves using EduAid! The interactive lessons keep her engaged, and I can see her progress every week.',
+      avatar: 'AN',
       color: 'from-pink-500 to-rose-500',
     },
     {
-      name: 'Michael Chen',
-      role: 'Teacher',
+      name: 'Sabine Callas',
+      role: 'Parent',
       text: 'The best educational platform I\'ve used. My students are more engaged than ever.',
-      avatar: 'MC',
+      avatar: 'SC',
       color: 'from-blue-500 to-indigo-500',
     },
     {
-      name: 'Emily Davis',
+      name: 'Zyanya Mondragon',
       role: 'Parent',
       text: 'The progress tracking is excellent. I can see exactly how my son is improving.',
-      avatar: 'ED',
+      avatar: 'ZM',
       color: 'from-purple-500 to-pink-500',
     },
   ];
