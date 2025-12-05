@@ -17,7 +17,6 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [grade, setGrade] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState(""); // yyyy-mm-dd
   const [address, setAddress] = useState("");
@@ -32,21 +31,20 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
 
     const name = user.name || "";
     const parts = name.trim().split(" ").filter(Boolean);
-    const fn = user.firstName ?? parts[0] ?? "";
+    const fn = (user as any).firstName ?? parts[0] ?? "";
     const ln =
-      user.lastName ??
+      (user as any).lastName ??
       (parts.length > 1 ? parts.slice(1).join(" ") : "");
 
     setFirstName(fn);
     setLastName(ln);
     setEmail(user.email || "");
-    setGrade(user.grade || "");
-    setPhoneNumber(user.phoneNumber || "");
-    setAddress(user.address || "");
-    setBio(user.bio || "");
+    setPhoneNumber((user as any).phoneNumber || "");
+    setAddress((user as any).address || "");
+    setBio((user as any).bio || "");
 
-    if (user.dateOfBirth) {
-      const d = new Date(user.dateOfBirth);
+    if ((user as any).dateOfBirth) {
+      const d = new Date((user as any).dateOfBirth);
       if (!Number.isNaN(d.getTime())) {
         const iso = d.toISOString().slice(0, 10); // yyyy-mm-dd
         setDateOfBirth(iso);
@@ -58,7 +56,7 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
   useEffect(() => {
     if (success) setSuccess(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstName, lastName, email, grade, phoneNumber, dateOfBirth, address, bio]);
+  }, [firstName, lastName, email, phoneNumber, dateOfBirth, address, bio]);
 
   const validate = () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -105,18 +103,18 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
         lastName: lastName.trim(),
         name: fullName,
         email: email.trim(),
-        grade: grade.trim(),
         phoneNumber: phoneNumber.trim(),
         address: address.trim(),
         bio: bio.trim(),
       };
 
       if (dateOfBirth) {
-        payload.dateOfBirth = dateOfBirth; // backend converts to Date
+        // backend can parse yyyy-mm-dd into Date
+        payload.dateOfBirth = dateOfBirth;
       }
 
       const res = await client.put(`/users/${id}/profile`, payload);
-      const updated = res.data ?? payload;
+      const updated = res.data ?? { ...user, ...payload };
 
       // update auth context + localStorage (AuthContext should handle persistence)
       updateUser(updated);
@@ -242,7 +240,7 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
             </div>
           </div>
 
-          {/* DOB / Grade */}
+          {/* DOB */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="dob">Date of Birth</Label>
@@ -254,16 +252,7 @@ export function ProfileSettings({ onBack }: ProfileSettingsProps) {
                 onChange={(e) => setDateOfBirth(e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor="grade">Grade Level</Label>
-              <Input
-                id="grade"
-                className="mt-1"
-                placeholder="e.g. Grade 8"
-                value={grade}
-                onChange={(e) => setGrade(e.target.value)}
-              />
-            </div>
+            {/* right column left empty to keep layout balanced */}
           </div>
 
           {/* Address */}

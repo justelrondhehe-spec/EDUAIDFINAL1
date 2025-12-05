@@ -98,7 +98,6 @@ interface AppContextType {
   lessons: Lesson[];
   activities: Activity[];
 
-
   // simple auth stubs (kept for backwards compatibility)
   isAuthenticated: boolean;
   login: (email: string, pw: string) => void;
@@ -118,7 +117,9 @@ function getUserId(authUser: any | null | undefined): string | null {
     authUser._id ??
     authUser.id ??
     authUser.userId ??
-    (typeof authUser === "object" && authUser.user && (authUser.user._id || authUser.user.id));
+    (typeof authUser === "object" &&
+      authUser.user &&
+      (authUser.user._id || authUser.user.id));
   if (!uid) return null;
   return String(uid);
 }
@@ -142,7 +143,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   >({});
 
   const [overallProgressPercent, setOverallProgressPercent] = useState(0);
-  const [achievementsEarned, setAchievementsEarned] = useState(3);
+  const [achievementsEarned, setAchievementsEarned] = useState(0);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<{
@@ -152,12 +153,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Content loaded from server (admin-created) - fallback to fixtures
   const [lessons, setLessons] = useState<Lesson[]>(() => lessonsFixture ?? []);
-  const [activities, setActivities] = useState<Activity[]>(() => activitiesFixture ?? []);
-
+  const [activities, setActivities] = useState<Activity[]>(
+    () => activitiesFixture ?? []
+  );
 
   const [userId, setUserId] = useState<string | null>(null);
 
-    // Keep a clean MongoDB user id from authUser
+  // Keep a clean MongoDB user id from authUser
   useEffect(() => {
     if (!authUser) {
       setUserId(null);
@@ -165,10 +167,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     // Only trust _id / userId, ignore any "id" placeholder
-    const raw =
-      (authUser as any)._id ||
-      (authUser as any).userId ||
-      null;
+    const raw = (authUser as any)._id || (authUser as any).userId || null;
 
     const idStr = raw ? String(raw) : null;
 
@@ -180,7 +179,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setUserId(null);
     }
   }, [authUser]);
-
 
   // ---------- fetch content (lessons & activities) ----------
   const fetchContentFromServer = async () => {
@@ -221,18 +219,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const onDataChanged = () => fetchContentFromServer();
     window.addEventListener("data:changed", onDataChanged as EventListener);
     return () =>
-      window.removeEventListener("data:changed", onDataChanged as EventListener);
+      window.removeEventListener(
+        "data:changed",
+        onDataChanged as EventListener
+      );
   }, []);
 
-    // ---------- push progress helper ----------
+  // ---------- push progress helper ----------
   const pushProgressToServer = async (patch: any) => {
     try {
       if (!userId) {
-        console.debug("pushProgressToServer: no valid userId, skipping server update");
+        console.debug(
+          "pushProgressToServer: no valid userId, skipping server update"
+        );
         return null;
       }
 
-      console.debug("pushProgressToServer -> PUT /users/%s/progress", userId, patch);
+      console.debug(
+        "pushProgressToServer -> PUT /users/%s/progress",
+        userId,
+        patch
+      );
       const res = await client.put(`/users/${userId}/progress`, patch);
 
       // tells GlobalDataContext to refetch for admin dashboards
@@ -244,7 +251,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return null;
     }
   };
-
 
   // ---------- notifications helpers ----------
   const markNotificationAsRead = (id: number) =>
@@ -280,6 +286,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.log("[AppContext] No auth user; clearing local progress.");
       setLessonProgress({});
       setActivityScores({});
+      setAchievementsEarned(0); // 🔸 reset achievements when logged out
       return;
     }
 
@@ -399,7 +406,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (activities || []).forEach((act) => {
       const relatedId = act.relatedLessonId;
       const isUnlocked =
-        relatedId === undefined || lessonProgress[relatedId]?.completed || false;
+        relatedId === undefined ||
+        lessonProgress[relatedId]?.completed ||
+        false;
       const score = activityScores[act.id] ?? activityScores[String(act.id)];
       const isCompleted = score?.completed || false;
 
@@ -436,7 +445,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       (s, a) => s + (a.score / a.maxScore) * 100,
       0
     );
-    setOverallProgressPercent(Math.round(totalPerc / completedActivities.length));
+    setOverallProgressPercent(
+      Math.round(totalPerc / completedActivities.length)
+    );
   }, [activityScores]);
 
   // ---------- lesson helpers ----------

@@ -32,6 +32,11 @@ export function MusicRhythmActivity({ onBack }: MusicRhythmActivityProps) {
   // IMPORTANT: must match activity id in DB / seed
   const activityId = 5;
 
+  // Read existing score (if user already completed this before)
+  const existingScore =
+    activityScores[activityId] ?? activityScores[String(activityId)] ?? null;
+  const isActivityCompleted = !!existingScore?.completed;
+
   // ----- Audio (simple beeps using Web Audio API) -----
   const [audioCtx, setAudioCtx] = useState<AudioContext | null>(null);
 
@@ -94,9 +99,6 @@ export function MusicRhythmActivity({ onBack }: MusicRhythmActivityProps) {
   };
 
   // ----- Backend score state -----
-  const existingScore =
-    activityScores[activityId] ?? activityScores[String(activityId)] ?? null;
-
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
 
@@ -182,9 +184,9 @@ export function MusicRhythmActivity({ onBack }: MusicRhythmActivityProps) {
   };
 
   // ----- Module 2: Echo Patterns -----
-  const [patternAnswers, setPatternAnswers] = useState<
-    Record<number, number[]>
-  >({});
+  const [patternAnswers, setPatternAnswers] = useState<Record<number, number[]>>(
+    {}
+  );
   const [currentPattern, setCurrentPattern] = useState(0);
   const [userTaps, setUserTaps] = useState<number[]>([]);
   const [isShowingPattern, setIsShowingPattern] = useState(false);
@@ -305,7 +307,7 @@ export function MusicRhythmActivity({ onBack }: MusicRhythmActivityProps) {
       const currentIndex = rhythmSymbols.indexOf(current);
       const nextIndex =
         currentIndex === -1
-          ? 1 // if somehow not found, start at first symbol
+          ? 1
           : (currentIndex + 1) % rhythmSymbols.length;
       next[slotIdx] = rhythmSymbols[nextIndex];
       return next;
@@ -355,7 +357,7 @@ export function MusicRhythmActivity({ onBack }: MusicRhythmActivityProps) {
 
   // auto-submit to backend when everything is correct + show popup
   useEffect(() => {
-    if (!allModulesComplete || hasSubmitted) return;
+    if (!allModulesComplete || isActivityCompleted || hasSubmitted) return;
 
     const score = 100;
     const maxScore = 100;
@@ -368,7 +370,13 @@ export function MusicRhythmActivity({ onBack }: MusicRhythmActivityProps) {
       .catch((err) => {
         console.warn("Failed to complete Music Rhythm activity:", err);
       });
-  }, [allModulesComplete, hasSubmitted, completeActivity, activityId]);
+  }, [
+    allModulesComplete,
+    isActivityCompleted,
+    hasSubmitted,
+    completeActivity,
+    activityId,
+  ]);
 
   const handleReset = () => {
     setTempoAnswers({});
@@ -418,7 +426,7 @@ export function MusicRhythmActivity({ onBack }: MusicRhythmActivityProps) {
                 Progress: {progress}%
               </span>
             </div>
-            {existingScore?.completed && (
+            {isActivityCompleted && (
               <div className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold flex items-center gap-1">
                 <Trophy className="w-4 h-4" />
                 Completed
@@ -992,7 +1000,7 @@ export function MusicRhythmActivity({ onBack }: MusicRhythmActivityProps) {
               You finished all 4 modules with sound, symbols, and patterns!
             </p>
             <p className="text-white/80 text-sm">
-              {hasSubmitted
+              {hasSubmitted || isActivityCompleted
                 ? "Your score is saved. You can replay anytime!"
                 : "Saving your score..."}
             </p>

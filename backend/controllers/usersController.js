@@ -60,7 +60,11 @@ export async function updateProgress(req, res) {
     }
 
     // Perform the update (set merged objects, preserve password)
-    const updated = await User.findByIdAndUpdate(id, { $set: updatedFields }, { new: true }).select('-password').lean();
+    const updated = await User.findByIdAndUpdate(
+      id,
+      { $set: updatedFields },
+      { new: true }
+    ).select('-password').lean();
 
     return res.json(updated);
   } catch (err) {
@@ -71,7 +75,6 @@ export async function updateProgress(req, res) {
 
 /**
  * GET /api/users
- * (If you already have an adminController.getUsers, you can reuse it.)
  * Return users without password, normalizing common fields expected by frontend.
  */
 export async function listUsers(req, res) {
@@ -93,5 +96,56 @@ export async function listUsers(req, res) {
   } catch (err) {
     console.error('usersController.listUsers error', err);
     return res.status(500).json({ message: 'Failed to fetch users' });
+  }
+}
+
+/**
+ * PUT /api/users/:id/profile
+ * Update basic profile info: name, email, phone, address, bio, dateOfBirth, etc.
+ */
+export async function updateUserProfile(req, res) {
+  try {
+    const { id } = req.params;
+
+    const {
+      firstName,
+      lastName,
+      name,
+      email,
+      phoneNumber,
+      address,
+      bio,
+      dateOfBirth,
+    } = req.body || {};
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (name !== undefined) user.name = name;
+    if (email !== undefined) user.email = email;
+
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+    if (address !== undefined) user.address = address;
+    if (bio !== undefined) user.bio = bio;
+
+    if (dateOfBirth !== undefined && dateOfBirth !== "") {
+      user.dateOfBirth = new Date(dateOfBirth); // frontend sends yyyy-mm-dd
+    }
+
+    const saved = await user.save();
+    const safeUser = saved.toObject();
+    delete safeUser.password;
+
+    return res.json(safeUser);
+  } catch (err) {
+    console.error("usersController.updateUserProfile error", err);
+    return res.status(500).json({
+      message: "Failed to update profile",
+      error: err.message,
+    });
   }
 }

@@ -87,14 +87,25 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
         (key !== undefined && activityScores[key]) ||
         (key !== undefined && activityScores[String(key)]);
 
+      const relatedLessonId = activity.relatedLessonId;
+
       const relatedLesson =
-        activity.relatedLessonId !== undefined
-          ? lessonProgress[activity.relatedLessonId] ||
-            lessonProgress[String(activity.relatedLessonId)]
+        relatedLessonId !== undefined
+          ? lessonProgress[relatedLessonId] ||
+            lessonProgress[String(relatedLessonId)]
           : null;
 
+      const lessonDone = !!relatedLesson?.completed;
+      const unlockedByScore = !!activityScore;
+
+      // 🔓 final lock logic:
+      // - locked ONLY if it has a relatedLessonId
+      //   AND the lesson is NOT completed
+      //   AND there is NO activityScore entry yet
       const isLocked =
-        activity.relatedLessonId !== undefined && !relatedLesson?.completed;
+        relatedLessonId !== undefined &&
+        !lessonDone &&
+        !unlockedByScore;
 
       let status: 'pending' | 'in-progress' | 'completed' = 'pending';
       let grade = activity.grade;
@@ -520,7 +531,7 @@ export function Activities({ onNavigate }: ActivitiesProps = {}) {
                             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                               <Calendar className="w-4 h-4" />
                               <span>
-                                Due:{' '}
+                                Due{' '}
                                 {new Date(
                                   activity.dueDate as any
                                 ).toLocaleDateString()}

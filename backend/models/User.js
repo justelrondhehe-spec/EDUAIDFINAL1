@@ -8,6 +8,14 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ["user", "admin"], default: "user" },
 
+    // basic profile fields
+    firstName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
+    phoneNumber: { type: String, trim: true, default: "" },
+    address: { type: String, trim: true, default: "" },
+    bio: { type: String, trim: true, default: "" },
+    dateOfBirth: { type: Date, default: null },
+
     // progress data (optional)
     lessonProgress: { type: mongoose.Schema.Types.Mixed },
     activityScores: { type: mongoose.Schema.Types.Mixed },

@@ -3,22 +3,11 @@ import { Card } from './ui/card';
 import { useApp } from '../contexts/AppContext';
 
 export function Progress() {
-  const {
-    overallProgressPercent,
-    activityScores,
-    lessonProgress,
-    recentActivities,
-  } = useApp();
-
-  // Stats based on actual progress
-  const completedLessonsCount = Object.values(lessonProgress).filter(
-    (l) => l.completed
-  ).length;
-  const completedActivitiesCount = Object.values(activityScores).filter(
-    (a) => a.completed
-  ).length;
-  const totalActivitiesCompleted =
-    completedLessonsCount + completedActivitiesCount;
+  const { overallProgressPercent, activityScores, lessonProgress, achievementsEarned, recentActivities } = useApp();
+  // Update weekly stats based on actual progress
+  const completedLessonsCount = Object.values(lessonProgress).filter(l => l.completed).length;
+  const completedActivitiesCount = Object.values(activityScores).filter(a => a.completed).length;
+  const totalActivitiesCompleted = completedLessonsCount + completedActivitiesCount;
 
   const achievements = [
     {
@@ -58,44 +47,30 @@ export function Progress() {
       title: 'Perfectionist',
       description: 'Get 100% on any activity',
       icon: '💎',
-      earned: Object.values(activityScores).some(
-        (a) => a.completed && a.score / a.maxScore === 1
-      ),
-      date: Object.values(activityScores).some(
-        (a) => a.completed && a.score / a.maxScore === 1
-      )
-        ? 'Just earned'
-        : undefined,
+      earned: Object.values(activityScores).some(a => a.completed && (a.score / a.maxScore) === 1),
+      date: Object.values(activityScores).some(a => a.completed && (a.score / a.maxScore) === 1) ? 'Just earned' : undefined,
       color: 'from-cyan-500 to-cyan-600',
     },
   ];
 
-  // ✅ derive how many badges are actually earned
-  const achievementsEarnedCount = achievements.filter((a) => a.earned).length;
-
   // Display message if no recent activities
-  const displayActivities =
-    recentActivities.length > 0
-      ? recentActivities
-      : [
-          {
-            id: 0,
-            title: 'No recent activities yet',
-            time: 'Complete lessons or activities to see them here',
-            icon: '📝',
-            color: 'text-slate-400',
-            timestamp: new Date(),
-          },
-        ];
+  const displayActivities = recentActivities.length > 0 
+    ? recentActivities 
+    : [{ 
+        id: 0,
+        title: 'No recent activities yet', 
+        time: 'Complete lessons or activities to see them here', 
+        icon: '📝', 
+        color: 'text-slate-400',
+        timestamp: new Date(),
+      }];
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-slate-800 dark:text-slate-100 mb-2">My Progress</h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          Track your learning journey and achievements
-        </p>
+        <p className="text-slate-600 dark:text-slate-400">Track your learning journey and achievements</p>
       </div>
 
       {/* Overview Stats */}
@@ -108,9 +83,7 @@ export function Progress() {
               <div className="text-blue-100 text-sm">Overall Progress</div>
             </div>
           </div>
-          <div className="text-sm text-blue-100">
-            Average score across all activities
-          </div>
+          <div className="text-sm text-blue-100">Average score across all activities</div>
         </Card>
 
         <Card className="p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg">
@@ -121,16 +94,14 @@ export function Progress() {
               <div className="text-emerald-100 text-sm">Completed</div>
             </div>
           </div>
-          <div className="text-sm text-emerald-100">
-            Activities & lessons finished
-          </div>
+          <div className="text-sm text-emerald-100">Activities & lessons finished</div>
         </Card>
 
         <Card className="p-6 bg-gradient-to-br from-pink-500 to-rose-500 text-white border-0 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <Award className="w-8 h-8 opacity-80" />
             <div className="text-right">
-              <div className="text-3xl mb-1">{achievementsEarnedCount}</div>
+              <div className="text-3xl mb-1">{achievementsEarned}</div>
               <div className="text-pink-100 text-sm">Achievements</div>
             </div>
           </div>
@@ -147,12 +118,8 @@ export function Progress() {
               <Trophy className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-slate-800 dark:text-slate-100">
-                Achievements
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Your badges
-              </p>
+              <h3 className="text-slate-800 dark:text-slate-100">Achievements</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Your badges</p>
             </div>
           </div>
 
@@ -167,26 +134,17 @@ export function Progress() {
                 }`}
               >
                 <div className="text-3xl mb-2">{achievement.icon}</div>
-                <div
-                  className={`text-sm ${
-                    achievement.earned
-                      ? 'text-white'
-                      : 'text-slate-600 dark:text-slate-400'
-                  }`}
-                >
+                <div className={`text-sm ${achievement.earned ? 'text-white' : 'text-slate-600 dark:text-slate-400'}`}>
                   {achievement.title}
                 </div>
                 {achievement.earned && achievement.date && (
-                  <div className="text-xs opacity-80 mt-1">
-                    {achievement.date}
+                  <div className="text-xs opacity-80 mt-1">{achievement.date}</div>
+                )}
+                {!achievement.earned && achievement.progress !== undefined && (
+                  <div className="text-xs mt-1 text-slate-600 dark:text-slate-400">
+                    {achievement.progress}/{achievement.total}
                   </div>
                 )}
-                {!achievement.earned &&
-                  achievement.progress !== undefined && (
-                    <div className="text-xs mt-1 text-slate-600 dark:text-slate-400">
-                      {achievement.progress}/{achievement.total}
-                    </div>
-                  )}
               </div>
             ))}
           </div>
@@ -199,21 +157,15 @@ export function Progress() {
               <Clock className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-slate-800 dark:text-slate-100">
-                Recent Activity
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Latest updates
-              </p>
+              <h3 className="text-slate-800 dark:text-slate-100">Recent Activity</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Latest updates</p>
             </div>
           </div>
 
           <div className="space-y-4">
             {displayActivities.map((activity, index) => (
               <div key={index} className="flex items-start gap-3">
-                <div className={`text-xl ${activity.color}`}>
-                  {activity.icon}
-                </div>
+                <div className={`text-xl ${activity.color}`}>{activity.icon}</div>
                 <div className="flex-1">
                   <div className="text-sm text-slate-800 dark:text-slate-200 mb-1">
                     {activity.title}
