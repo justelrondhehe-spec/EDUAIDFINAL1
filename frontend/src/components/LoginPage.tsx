@@ -204,7 +204,7 @@ export function LoginPage({ onNavigateToHome, onNavigateToSignup }: LoginPagePro
                   <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400">Or continue with</span>
+                  
                 </div>
               </div>
 
