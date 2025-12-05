@@ -225,24 +225,24 @@ export function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToIn
             <div className="space-y-3">
               <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl p-4 shadow-lg">
                 <div className="text-2xl mb-1.5">📚</div>
-                <div className="text-xl mb-0.5">500+</div>
+                <div className="text-xl mb-0.5">5</div>
                 <div className="text-xs text-white/80">Interactive Lessons</div>
               </div>
               <div className="bg-gradient-to-br from-purple-500 to-pink-600 text-white rounded-xl p-4 shadow-lg">
                 <div className="text-2xl mb-1.5">🏆</div>
-                <div className="text-xl mb-0.5">100+</div>
+                <div className="text-xl mb-0.5">5</div>
                 <div className="text-xs text-white/80">Achievement Badges</div>
               </div>
             </div>
             <div className="space-y-3 mt-6">
               <div className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl p-4 shadow-lg">
                 <div className="text-2xl mb-1.5">👥</div>
-                <div className="text-xl mb-0.5">10K+</div>
+                <div className="text-xl mb-0.5">10+</div>
                 <div className="text-xs text-white/80">Happy Students</div>
               </div>
               <div className="bg-gradient-to-br from-yellow-500 to-orange-600 text-white rounded-xl p-4 shadow-lg">
                 <div className="text-2xl mb-1.5">⭐</div>
-                <div className="text-xl mb-0.5">4.9/5</div>
+                <div className="text-xl mb-0.5">4.2/5</div>
                 <div className="text-xs text-white/80">Average Rating</div>
               </div>
             </div>
@@ -328,8 +328,6 @@ export function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToIn
               <h4 className="text-sm mb-3">Product</h4>
               <ul className="space-y-1.5 text-slate-400 text-xs">
                 <li><button onClick={() => onNavigateToInfo('features')} className="hover:text-white transition-colors">Features</button></li>
-                <li><button onClick={() => onNavigateToInfo('pricing')} className="hover:text-white transition-colors">Pricing</button></li>
-                <li><button onClick={() => onNavigateToInfo('curriculum')} className="hover:text-white transition-colors">Curriculum</button></li>
               </ul>
             </div>
             <div>
@@ -337,7 +335,6 @@ export function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToIn
               <ul className="space-y-1.5 text-slate-400 text-xs">
                 <li><button onClick={() => onNavigateToInfo('about')} className="hover:text-white transition-colors">About</button></li>
                 <li><button onClick={() => onNavigateToInfo('blog')} className="hover:text-white transition-colors">Blog</button></li>
-                <li><button onClick={() => onNavigateToInfo('careers')} className="hover:text-white transition-colors">Careers</button></li>
               </ul>
             </div>
             <div>

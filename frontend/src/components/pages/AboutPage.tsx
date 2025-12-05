@@ -72,7 +72,7 @@ export function AboutPage({ onNavigateToHome, onNavigateToLogin, onNavigateToSig
     { value: '10+', label: 'Active Students' },
     { value: '5', label: 'Lessons' },
     { value: '5', label: 'Expert Educators' },
-    { value: '1', label: 'CountrY' },
+    { value: '1', label: 'Country' },
   ];
 
   return (
