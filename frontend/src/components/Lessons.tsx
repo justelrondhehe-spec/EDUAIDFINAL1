@@ -91,7 +91,9 @@ export function Lessons({ onNavigate }: LessonsProps) {
       case 5:
         onNavigate("lesson-music-rhythm");
         return true;
-      // case 6 ("lesson-our-emotions") intentionally not reachable
+      case 6:
+        onNavigate("lesson-our-emotions");
+        return true;
       default:
         return false; // no dedicated page
     }

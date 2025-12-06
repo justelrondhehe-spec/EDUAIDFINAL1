@@ -235,3 +235,4 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
     </div>
   );
 }
+

@@ -48,7 +48,7 @@ export function OurEmotionsLesson({ onBack }: OurEmotionsLessonProps) {
   const rawLessonId: number | string =
     (ourLessonFromContext as any)?._id ??
     ourLessonFromContext?.id ??
-    6; // fallback so it still works with fixtures
+    7; // fallback so it still works with fixtures
 
   const lessonKey = rawLessonId as any;
 
