@@ -15,7 +15,6 @@ const sanitizeUser = (userDoc) => {
 export const getMe = async (req, res, next) => {
   try {
     const userId = req.user && (req.user._id || req.user.id || req.user.userId);
-
     if (!userId) {
       return res
         .status(401)
@@ -40,16 +39,16 @@ export const register = async (req, res, next) => {
     const { name, email, password } = req.body;
 
     const exists = await User.findOne({ email });
-    if (exists)
+    if (exists) {
       return res
         .status(400)
         .json({ success: false, message: "Email already taken" });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
 
     const user = await User.create({ name, email, password: hashed });
 
-    // create enrollment notification (best-effort)
     try {
       await Notification.create({
         type: "new_enrollment",
@@ -79,23 +78,25 @@ export const login = async (req, res, next) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user)
+    if (!user) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid email or password" });
+    }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match)
+    if (!match) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid email or password" });
+    }
 
-    // 🔐 If 2FA is enabled, send a tempToken and DO NOT log in fully yet
-    if (user.twoFactorSecret && user.twoFactorEnabled) {
+    // 🔐 If 2FA is enabled, we **do not** log them in yet.
+    if (user.twoFactorEnabled && user.twoFactorSecret) {
       const tempToken = jwt.sign(
         { userId: user._id, stage: "2fa" },
         JWT_SECRET,
-        { expiresIn: "10m" }
+        { expiresIn: "5m" }
       );
 
       return res.json({
@@ -105,7 +106,7 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // ✅ Normal login (no 2FA)
+    // Normal login (no 2FA)
     const token = generateToken(user);
 
     return res.json({

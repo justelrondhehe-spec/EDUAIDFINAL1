@@ -8,12 +8,10 @@ export const auth = {
     client.post("/auth/register", payload),
   me: () => client.get("/auth/me"),
 
-  // 2FA setup (optional UI later)
+  // 2FA
   start2faSetup: () => client.post("/auth/2fa/setup"),
   verify2faSetup: (token: string) =>
     client.post("/auth/2fa/verify-setup", { token }),
-
-  // 2FA login verification
   verify2faLogin: (token: string, tempToken: string) =>
     client.post("/auth/2fa/login", { token, tempToken }),
 };
@@ -56,7 +54,6 @@ export const adminApi = {
 export const progressApi = {
   updateLesson: (userId: string, lessonId: string, completed: boolean) =>
     client.patch(`/progress/lesson/${userId}`, { lessonId, completed }),
-
   updateActivity: (userId: string, activityId: string, completed: boolean) =>
     client.patch(`/progress/activity/${userId}`, { activityId, completed }),
 };

@@ -1,11 +1,4 @@
-// frontend/src/components/AccessibilitySettings.tsx
-import {
-  ArrowLeft,
-  Type,
-  Eye,
-  Volume2,
-  Save,
-} from "lucide-react";
+import { ArrowLeft, Type, Eye, Volume2, Save } from "lucide-react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
@@ -18,7 +11,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { useAccessibility } from "../../contexts/AccessibilityContext";
-import { TwoFactorSetup } from "./TwoFactorSetup"; // 👈 NEW
+import { TwoFactorSetup } from "./TwoFactorSetup";
 
 interface AccessibilitySettingsProps {
   onBack: () => void;
@@ -26,8 +19,6 @@ interface AccessibilitySettingsProps {
 
 export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
   const { settings, updateSettings } = useAccessibility();
-
-  // Helper to map slider value to display %
   const displaySize = Math.round(85 + (settings.textSize / 100) * 65);
 
   return (
@@ -51,7 +42,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
       </div>
 
       <div className="space-y-6">
-        {/* -------------------- VISUAL SETTINGS -------------------- */}
+        {/* VISUAL SETTINGS */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -68,7 +59,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </div>
 
           <div className="space-y-6">
-            {/* High Contrast */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Label>High Contrast Mode</Label>
@@ -84,7 +74,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
-            {/* Dark Mode */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Label>Dark Mode</Label>
@@ -100,7 +89,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
-            {/* Reading Ruler */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Label>Reading Ruler</Label>
@@ -116,7 +104,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
-            {/* Text Size */}
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
                 <Type className="w-4 h-4" />
@@ -132,7 +119,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
-            {/* Font Style */}
             <div className="space-y-3">
               <Label>Font Style</Label>
               <Select
@@ -155,7 +141,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </div>
         </div>
 
-        {/* -------------------- AUDIO SETTINGS -------------------- */}
+        {/* AUDIO SETTINGS */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -172,7 +158,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </div>
 
           <div className="space-y-6">
-            {/* Screen Reader Hints */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Label>Screen Reader Hints</Label>
@@ -188,7 +173,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
-            {/* Text-to-Speech */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Label>Text-to-Speech</Label>
@@ -204,7 +188,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
-            {/* Voice Speed */}
             <div className="space-y-3">
               <Label>Voice Speed</Label>
               <Slider
@@ -219,7 +202,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </div>
         </div>
 
-        {/* -------------------- SAVE BUTTONS -------------------- */}
+        {/* SAVE BUTTONS */}
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onBack}>
             Cancel
@@ -230,10 +213,8 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </Button>
         </div>
 
-        {/* -------------------- TWO-FACTOR AUTH -------------------- */}
-        <div className="mt-4">
-          <TwoFactorSetup />
-        </div>
+        {/* 2FA CARD */}
+        <TwoFactorSetup />
       </div>
     </div>
   );

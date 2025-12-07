@@ -4,17 +4,13 @@ import { auth } from "../api/api";
 
 export const AuthContext = createContext<any>(null);
 
-// helper to check if an id looks like a Mongo ObjectId
 const isValidObjectIdLike = (id: any) =>
   typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
 
-// normalize user so we always have user._id and user.id
 const normalizeUser = (u: any | null) => {
   if (!u) return null;
-
   const rawId = u._id ?? u.id ?? u.userId;
   if (!isValidObjectIdLike(rawId)) return null;
-
   const id = String(rawId);
   return { ...u, _id: id, id };
 };
@@ -24,8 +20,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const raw = localStorage.getItem("user");
       if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      return normalizeUser(parsed);
+      return normalizeUser(JSON.parse(raw));
     } catch {
       return null;
     }
@@ -42,11 +37,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(true);
 
   const setAuthToken = (t: string | null) => {
-    if (t) {
-      client.defaults.headers.common["Authorization"] = `Bearer ${t}`;
-    } else {
-      delete client.defaults.headers.common["Authorization"];
-    }
+    if (t) client.defaults.headers.common["Authorization"] = `Bearer ${t}`;
+    else delete client.defaults.headers.common["Authorization"];
     setToken(t);
   };
 
@@ -77,23 +69,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .then((res) => {
           const u = res.data.user ?? res.data;
           const normalized = normalizeUser(u);
-
           if (!normalized) {
             logout();
             return;
           }
-
           setUser(normalized);
-          try {
-            localStorage.setItem("user", JSON.stringify(normalized));
-          } catch {}
+          localStorage.setItem("user", JSON.stringify(normalized));
           window.dispatchEvent(
             new CustomEvent("auth:changed", { detail: { user: normalized } })
           );
         })
-        .catch(() => {
-          logout();
-        })
+        .catch(() => logout())
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -106,30 +92,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * Login now supports 2FA:
-   * - If backend returns { require2fa: true, tempToken }, we DO NOT log the user in yet.
-   *   We just return that object to the caller.
-   * - Otherwise, we do the normal login flow.
-   */
+  // LOGIN – supports 2FA
   const login = async (email: string, password: string) => {
     const res = await auth.login(email, password);
     const data = res.data;
 
     if (data.require2fa) {
-      return {
-        require2fa: true,
-        tempToken: data.tempToken,
-      };
+      // Step 1 only – caller will now ask for 2FA code
+      return { require2fa: true, tempToken: data.tempToken };
     }
 
     const t = data.token;
     const u = data.user ?? data;
 
     if (t) {
-      try {
-        localStorage.setItem("token", t);
-      } catch {}
+      localStorage.setItem("token", t);
       setAuthToken(t);
     }
 
@@ -139,11 +116,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { require2fa: false, user: null };
     }
 
-    try {
-      localStorage.setItem("user", JSON.stringify(normalized));
-    } catch {}
+    localStorage.setItem("user", JSON.stringify(normalized));
     setUser(normalized);
-
     window.dispatchEvent(
       new CustomEvent("auth:changed", { detail: { user: normalized } })
     );
@@ -151,13 +125,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { require2fa: false, user: normalized };
   };
 
-  /**
-   * Called AFTER the user enters the 6-digit code from Google Authenticator.
-   */
-  const verifyTwoFactorLogin = async (
-    code: string,
-    tempToken: string
-  ): Promise<any> => {
+  // 2FA verify step
+  const verifyTwoFactorLogin = async (code: string, tempToken: string) => {
     const res = await auth.verify2faLogin(code, tempToken);
     const data = res.data;
 
@@ -165,9 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const u = data.user ?? data;
 
     if (t) {
-      try {
-        localStorage.setItem("token", t);
-      } catch {}
+      localStorage.setItem("token", t);
       setAuthToken(t);
     }
 
@@ -177,11 +144,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return null;
     }
 
-    try {
-      localStorage.setItem("user", JSON.stringify(normalized));
-    } catch {}
+    localStorage.setItem("user", JSON.stringify(normalized));
     setUser(normalized);
-
     window.dispatchEvent(
       new CustomEvent("auth:changed", { detail: { user: normalized } })
     );
@@ -196,9 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const u = data.user ?? data;
 
     if (t) {
-      try {
-        localStorage.setItem("token", t);
-      } catch {}
+      localStorage.setItem("token", t);
       setAuthToken(t);
     }
 
@@ -208,16 +170,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return null;
     }
 
-    try {
-      localStorage.setItem("user", JSON.stringify(normalized));
-    } catch {}
+    localStorage.setItem("user", JSON.stringify(normalized));
     setUser(normalized);
-
-    try {
-      localStorage.setItem("justRegistered", "true");
-    } catch (err) {
-      console.warn("Could not set justRegistered flag:", err);
-    }
+    localStorage.setItem("justRegistered", "true");
 
     window.dispatchEvent(
       new CustomEvent("auth:changed", { detail: { user: normalized } })
@@ -233,7 +188,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       logout();
       return;
     }
-
     const withId = {
       ...(user || {}),
       ...updated,
@@ -248,10 +202,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     setUser(normalized);
-    try {
-      localStorage.setItem("user", JSON.stringify(normalized));
-    } catch {}
-
+    localStorage.setItem("user", JSON.stringify(normalized));
     window.dispatchEvent(
       new CustomEvent("auth:changed", { detail: { user: normalized } })
     );
@@ -281,9 +232,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used inside an AuthProvider");
-  }
+  if (!ctx) throw new Error("useAuth must be used inside an AuthProvider");
   return ctx;
 };
 

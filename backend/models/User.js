@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
@@ -32,7 +32,6 @@ const userSchema = new mongoose.Schema(
         weeklyProgressReport: { type: Boolean, default: false },
         announcements: { type: Boolean, default: true },
         learningTips: { type: Boolean, default: false },
-        // "instant" | "daily" | "weekly"
         frequency: { type: String, default: "daily" },
       },
       messages: {
@@ -42,7 +41,6 @@ const userSchema = new mongoose.Schema(
       },
       quietHours: {
         enabled: { type: Boolean, default: false },
-        // store as "HH:MM" (24h)
         startTime: { type: String, default: "22:00" },
         endTime: { type: String, default: "07:00" },
       },
@@ -50,7 +48,7 @@ const userSchema = new mongoose.Schema(
 
     // 🎛 Accessibility / learning support settings
     accessibilitySettings: {
-      textSize: { type: String, default: "medium" }, // "small" | "medium" | "large" | "extra-large"
+      textSize: { type: String, default: "medium" },
       dyslexiaFriendlyFont: { type: Boolean, default: false },
       highContrast: { type: Boolean, default: false },
       reduceMotion: { type: Boolean, default: false },
@@ -75,15 +73,15 @@ const userSchema = new mongoose.Schema(
       locale: { type: String, default: "en-US" },
       timezone: { type: String, default: "Asia/Manila" },
       dateFormat: { type: String, default: "MM/DD/YYYY" },
-      timeFormat: { type: String, default: "12h" }, // "12h" or "24h"
+      timeFormat: { type: String, default: "12h" },
       showTranslatedInstructions: { type: Boolean, default: true },
     },
 
-    // 🔐 Two-factor authentication (TOTP – Google Authenticator)
-    twoFactorSecret: { type: String },                  // base32 secret
-    twoFactorEnabled: { type: Boolean, default: false } // true after verified
+    // 🔐 Simple 2FA fields (no privacySettings object anymore)
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-export default mongoose.model('User', userSchema);
+export default mongoose.model("User", userSchema);

@@ -9,20 +9,15 @@ import {
 
 const router = express.Router();
 
-// REGISTER
 router.post("/register", register);
-
-// LOGIN (password step)
 router.post("/login", login);
-
-// CURRENT USER (used by frontend auth.me())
 router.get("/me", protect, getMe);
 
-// 2FA – setup (user must already be logged in)
+// 2FA setup (must be logged in)
 router.post("/2fa/setup", protect, startTwoFactorSetup);
 router.post("/2fa/verify-setup", protect, verifyTwoFactorSetup);
 
-// 2FA – login verification (after password + tempToken)
+// 2FA login (after password)
 router.post("/2fa/login", verifyTwoFactorLogin);
 
 export default router;

@@ -1,4 +1,3 @@
-// backend/controllers/twoFactorController.js
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
 import jwt from "jsonwebtoken";
@@ -7,13 +6,11 @@ import User from "../models/User.js";
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_key";
 
 /**
- * POST /api/auth/2fa/setup
- * Requires: protect middleware (user must be logged in)
- * Generates a secret + QR code for Google Authenticator.
+ * POST /api/auth/2fa/setup  (protected)
  */
 export const startTwoFactorSetup = async (req, res) => {
   try {
-    const userId = req.user.id; // from protect middleware
+    const userId = req.user.id;
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -21,7 +18,6 @@ export const startTwoFactorSetup = async (req, res) => {
       name: `EduAid (${user.email})`,
     });
 
-    // Save secret, keep 2FA disabled until verification
     user.twoFactorSecret = secret.base32;
     user.twoFactorEnabled = false;
     await user.save();
@@ -32,7 +28,7 @@ export const startTwoFactorSetup = async (req, res) => {
     res.json({
       otpauthUrl,
       qrCodeDataUrl,
-      secret: secret.base32, // optional backup
+      secret: secret.base32,
     });
   } catch (err) {
     console.error("startTwoFactorSetup error", err);
@@ -41,9 +37,8 @@ export const startTwoFactorSetup = async (req, res) => {
 };
 
 /**
- * POST /api/auth/2fa/verify-setup
+ * POST /api/auth/2fa/verify-setup  (protected)
  * Body: { token: "123456" }
- * Confirms the code from Google Authenticator and enables 2FA.
  */
 export const verifyTwoFactorSetup = async (req, res) => {
   try {
@@ -79,7 +74,6 @@ export const verifyTwoFactorSetup = async (req, res) => {
 /**
  * POST /api/auth/2fa/login
  * Body: { token: "123456", tempToken: "..." }
- * Used after password is correct but 2FA is required.
  */
 export const verifyTwoFactorLogin = async (req, res) => {
   try {
@@ -120,7 +114,7 @@ export const verifyTwoFactorLogin = async (req, res) => {
       return res.status(400).json({ message: "Invalid 2FA code" });
     }
 
-    // Issue the real login JWT
+    // Final login token
     const fullToken = jwt.sign(
       { id: user._id },
       JWT_SECRET,
