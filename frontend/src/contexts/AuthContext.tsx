@@ -116,9 +116,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Login now supports 2FA:
+   * - If backend returns { require2fa: true, tempToken }, we DO NOT log the user in yet.
+   *   We just return { require2fa: true, tempToken }.
+   * - Otherwise, we do the normal login flow.
+   */
   const login = async (email: string, password: string) => {
     const res = await auth.login(email, password);
     const data = res.data;
+
+    // 🔐 2FA required branch
+    if (data.require2fa) {
+      // Do NOT set token/user yet
+      return {
+        require2fa: true,
+        tempToken: data.tempToken,
+      };
+    }
+
+    // ✅ Normal login (no 2FA)
     const t = data.token;
     const u = data.user ?? data; // some backends just return the user
 
@@ -133,7 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!normalized) {
       // something is wrong with the backend response
       console.warn("Auth login: could not normalize user", u);
-      return null;
+      return { require2fa: false, user: null };
     }
 
     try {
@@ -142,6 +159,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(normalized);
 
     // broadcast auth state change
+    window.dispatchEvent(
+      new CustomEvent("auth:changed", { detail: { user: normalized } })
+    );
+
+    return { require2fa: false, user: normalized };
+  };
+
+  /**
+   * Called AFTER the user enters the 6-digit code from Google Authenticator.
+   * This hits the backend 2FA verify endpoint and then performs
+   * the same final login steps (store token + user).
+   */
+  const verifyTwoFactorLogin = async (
+    code: string,
+    tempToken: string
+  ): Promise<any> => {
+    const res = await auth.verify2faLogin(code, tempToken);
+    const data = res.data;
+
+    const t = data.token;
+    const u = data.user ?? data;
+
+    if (t) {
+      try {
+        localStorage.setItem("token", t);
+      } catch {}
+      setAuthToken(t);
+    }
+
+    const normalized = normalizeUser(u);
+    if (!normalized) {
+      console.warn("Auth verify2FA: could not normalize user", u);
+      return null;
+    }
+
+    try {
+      localStorage.setItem("user", JSON.stringify(normalized));
+    } catch {}
+    setUser(normalized);
+
     window.dispatchEvent(
       new CustomEvent("auth:changed", { detail: { user: normalized } })
     );
@@ -191,7 +248,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // alias for compatibility if components call signup(...)
   const signup = register;
 
-  // 🔹 NEW: updateUser helper used by ProfileSettings and others
+  // 🔹 updateUser helper used by ProfileSettings and others
   const updateUser = (updated: any) => {
     if (!updated) {
       // treat as logout if called with null
@@ -233,10 +290,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         loading,
         isAuthenticated,
         login,
+        verifyTwoFactorLogin, // 👈 expose new helper
         register,
         signup,
         logout,
-        updateUser, // 👈 expose updateUser to consumers
+        updateUser,
       }}
     >
       {children}

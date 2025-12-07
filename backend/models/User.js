@@ -86,8 +86,11 @@ const userSchema = new mongoose.Schema(
       showAchievementsOnProfile: { type: Boolean, default: true },
       shareAnonymousUsageData: { type: Boolean, default: true },
       loginAlerts: { type: Boolean, default: true },
-      twoFactorEnabled: { type: Boolean, default: false }, // UI only for now
+      twoFactorEnabled: { type: Boolean, default: false }, // now actually used
     },
+
+    // 🔐 2FA secret for Google Authenticator
+    twoFactorSecret: { type: String, default: null },
   },
   { timestamps: true }
 );

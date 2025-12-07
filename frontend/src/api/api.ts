@@ -5,10 +5,20 @@ import client from './client';
 export const auth = {
   login: (email: string, password: string) =>
     client.post('/auth/login', { email, password }),
+
   register: (payload: { name?: string; email: string; password: string }) =>
     client.post('/auth/register', payload),
-  me: () => client.get('/auth/me'), // if backend provides
+
+  me: () => client.get('/auth/me'),
+
+  // ✔ FIXED: must match backend route
+  verify2faLogin: (code: string, tempToken: string) =>
+    client.post('/auth/2fa/login', {
+      token: code,
+      tempToken,
+    }),
 };
+
 
 // LESSONS
 export const lessonsApi = {
@@ -39,7 +49,8 @@ export const adminApi = {
   dashboard: () => client.get('/admin/dashboard'), // optional aggregated endpoint
   users: () => client.get('/admin/users'),
   getUser: (id: string) => client.get(`/admin/users/${id}`),
-  updateUserRole: (id: string, role: string) => client.put(`/admin/users/${id}/role`, { role }),
+  updateUserRole: (id: string, role: string) =>
+    client.put(`/admin/users/${id}/role`, { role }),
   deleteUser: (id: string) => client.delete(`/admin/users/${id}`),
 };
 
