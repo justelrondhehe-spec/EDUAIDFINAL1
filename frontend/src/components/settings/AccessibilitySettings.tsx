@@ -1,3 +1,4 @@
+// frontend/src/components/AccessibilitySettings.tsx
 import { ArrowLeft, Type, Eye, Volume2, Save } from "lucide-react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { useAccessibility } from "../../contexts/AccessibilityContext";
-import { TwoFactorSetup } from "./TwoFactorSetup";
+import { TwoFactorSetup } from "../TwoFactorSetup";
 
 interface AccessibilitySettingsProps {
   onBack: () => void;
@@ -59,6 +60,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </div>
 
           <div className="space-y-6">
+            {/* High Contrast */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Label>High Contrast Mode</Label>
@@ -74,6 +76,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
+            {/* Dark Mode */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Label>Dark Mode</Label>
@@ -89,6 +92,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
+            {/* Reading Ruler */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
                 <Label>Reading Ruler</Label>
@@ -104,6 +108,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
+            {/* Text Size */}
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
                 <Type className="w-4 h-4" />
@@ -119,6 +124,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               />
             </div>
 
+            {/* Font Style */}
             <div className="space-y-3">
               <Label>Font Style</Label>
               <Select
@@ -202,7 +208,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </div>
         </div>
 
-        {/* SAVE BUTTONS */}
+        {/* ACTION BUTTONS */}
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onBack}>
             Cancel
@@ -213,7 +219,7 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </Button>
         </div>
 
-        {/* 2FA CARD */}
+        {/* 2FA SETUP CARD */}
         <TwoFactorSetup />
       </div>
     </div>

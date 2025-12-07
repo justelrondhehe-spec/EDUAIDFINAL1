@@ -1,3 +1,4 @@
+// backend/controllers/twoFactorController.js
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
 import jwt from "jsonwebtoken";
@@ -5,12 +6,10 @@ import User from "../models/User.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_key";
 
-/**
- * POST /api/auth/2fa/setup  (protected)
- */
+// POST /api/auth/2fa/setup  (protected)
 export const startTwoFactorSetup = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -36,13 +35,10 @@ export const startTwoFactorSetup = async (req, res) => {
   }
 };
 
-/**
- * POST /api/auth/2fa/verify-setup  (protected)
- * Body: { token: "123456" }
- */
+// POST /api/auth/2fa/verify-setup  (protected)
 export const verifyTwoFactorSetup = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const { token } = req.body;
 
     const user = await User.findById(userId);
@@ -71,14 +67,10 @@ export const verifyTwoFactorSetup = async (req, res) => {
   }
 };
 
-/**
- * POST /api/auth/2fa/login
- * Body: { token: "123456", tempToken: "..." }
- */
+// POST /api/auth/2fa/login
 export const verifyTwoFactorLogin = async (req, res) => {
   try {
     const { token, tempToken } = req.body;
-
     if (!tempToken || !token) {
       return res.status(400).json({ message: "Missing 2FA data" });
     }
@@ -86,7 +78,7 @@ export const verifyTwoFactorLogin = async (req, res) => {
     let payload;
     try {
       payload = jwt.verify(tempToken, JWT_SECRET);
-    } catch (err) {
+    } catch {
       return res
         .status(401)
         .json({ message: "2FA session expired or invalid" });
@@ -98,9 +90,7 @@ export const verifyTwoFactorLogin = async (req, res) => {
 
     const user = await User.findById(payload.userId);
     if (!user || !user.twoFactorSecret || !user.twoFactorEnabled) {
-      return res
-        .status(400)
-        .json({ message: "2FA not enabled for this user" });
+      return res.status(400).json({ message: "2FA not enabled for this user" });
     }
 
     const isValid = speakeasy.totp.verify({
@@ -114,7 +104,6 @@ export const verifyTwoFactorLogin = async (req, res) => {
       return res.status(400).json({ message: "Invalid 2FA code" });
     }
 
-    // Final login token
     const fullToken = jwt.sign(
       { id: user._id },
       JWT_SECRET,

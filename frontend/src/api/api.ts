@@ -1,3 +1,4 @@
+// frontend/src/api/api.ts
 import client from "./client";
 
 // AUTH
@@ -8,15 +9,15 @@ export const auth = {
     client.post("/auth/register", payload),
   me: () => client.get("/auth/me"),
 
-  // 2FA
+  // 2FA endpoints
   start2faSetup: () => client.post("/auth/2fa/setup"),
-  verify2faSetup: (token: string) =>
-    client.post("/auth/2fa/verify-setup", { token }),
-  verify2faLogin: (token: string, tempToken: string) =>
-    client.post("/auth/2fa/login", { token, tempToken }),
+  verify2faSetup: (code: string) =>
+    client.post("/auth/2fa/verify-setup", { token: code }),
+  verify2faLogin: (code: string, tempToken: string) =>
+    client.post("/auth/2fa/login", { token: code, tempToken }),
 };
 
-// LESSONS
+// LESSONS (unchanged)
 export const lessonsApi = {
   list: (params?: Record<string, any>) => client.get("/lessons", { params }),
   get: (id: string) => client.get(`/lessons/${id}`),
@@ -27,11 +28,11 @@ export const lessonsApi = {
 
 // ACTIVITIES
 export const activitiesApi = {
-  list: (params?: Record<string, any>) =>
-    client.get("/activities", { params }),
+  list: (params?: Record<string, any>) => client.get("/activities", { params }),
   get: (id: string) => client.get(`/activities/${id}`),
   create: (payload: any) => client.post("/activities", payload),
-  update: (id: string, payload: any) => client.put(`/activities/${id}`, payload),
+  update: (id: string, payload: any) =>
+    client.put(`/activities/${id}`, payload),
   delete: (id: string) => client.delete(`/activities/${id}`),
 };
 
@@ -54,6 +55,9 @@ export const adminApi = {
 export const progressApi = {
   updateLesson: (userId: string, lessonId: string, completed: boolean) =>
     client.patch(`/progress/lesson/${userId}`, { lessonId, completed }),
-  updateActivity: (userId: string, activityId: string, completed: boolean) =>
-    client.patch(`/progress/activity/${userId}`, { activityId, completed }),
+  updateActivity: (
+    userId: string,
+    activityId: string,
+    completed: boolean
+  ) => client.patch(`/progress/activity/${userId}`, { activityId, completed }),
 };

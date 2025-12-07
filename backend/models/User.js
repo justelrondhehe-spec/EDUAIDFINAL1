@@ -1,3 +1,4 @@
+// backend/models/User.js
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -20,7 +21,7 @@ const userSchema = new mongoose.Schema(
     activityScores: { type: mongoose.Schema.Types.Mixed },
     lastLogin: { type: Date },
 
-    // 🔔 per-user notification preferences
+    // notification settings (kept as you had)
     notificationSettings: {
       push: {
         enableAll: { type: Boolean, default: true },
@@ -46,7 +47,7 @@ const userSchema = new mongoose.Schema(
       },
     },
 
-    // 🎛 Accessibility / learning support settings
+    // accessibility / learning support settings
     accessibilitySettings: {
       textSize: { type: String, default: "medium" },
       dyslexiaFriendlyFont: { type: Boolean, default: false },
@@ -57,7 +58,7 @@ const userSchema = new mongoose.Schema(
       focusMode: { type: Boolean, default: false },
     },
 
-    // 👨‍👩‍👧 Guardian / parent settings
+    // guardian settings
     guardianSettings: {
       guardianName: { type: String },
       guardianEmail: { type: String },
@@ -67,7 +68,7 @@ const userSchema = new mongoose.Schema(
       allowGuardianLoginAlerts: { type: Boolean, default: true },
     },
 
-    // 🌍 Language & region
+    // language & region
     languageRegionSettings: {
       language: { type: String, default: "en" },
       locale: { type: String, default: "en-US" },
@@ -77,7 +78,7 @@ const userSchema = new mongoose.Schema(
       showTranslatedInstructions: { type: Boolean, default: true },
     },
 
-    // 🔐 Simple 2FA fields (no privacySettings object anymore)
+    // 🔐 2FA (top-level, simple)
     twoFactorEnabled: { type: Boolean, default: false },
     twoFactorSecret: { type: String, default: "" },
   },

@@ -1,3 +1,4 @@
+// backend/controllers/authController.js
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import bcrypt from "bcryptjs";
@@ -47,7 +48,11 @@ export const register = async (req, res, next) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const user = await User.create({ name, email, password: hashed });
+    const user = await User.create({
+      name,
+      email,
+      password: hashed,
+    });
 
     try {
       await Notification.create({
@@ -91,7 +96,7 @@ export const login = async (req, res, next) => {
         .json({ success: false, message: "Invalid email or password" });
     }
 
-    // 🔐 If 2FA is enabled, we **do not** log them in yet.
+    // 🔐 If 2FA is enabled, do NOT log in fully yet
     if (user.twoFactorEnabled && user.twoFactorSecret) {
       const tempToken = jwt.sign(
         { userId: user._id, stage: "2fa" },
@@ -106,7 +111,7 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // Normal login (no 2FA)
+    // ✅ Normal login (no 2FA)
     const token = generateToken(user);
 
     return res.json({
