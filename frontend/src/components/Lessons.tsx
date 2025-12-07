@@ -22,19 +22,24 @@ type LessonLike = Lesson & {
 
 // Solid header colors for each lesson (avoids the faded gradients)
 const getLessonHeaderStyle = (lesson: LessonLike): CSSProperties => {
+  const title = (lesson.title ?? "").toLowerCase();
+
   switch (lesson.id) {
     case 1: // Introduction to Numbers
       return { backgroundColor: "#2563eb" }; // blue-600
     case 2: // Reading Basics
       return { backgroundColor: "#10b981" }; // emerald-500
-    case 3: // Science Exploration (example)
+    case 3: // Science Exploration
       return { backgroundColor: "#0ea5e9" }; // sky-500
     case 4: // Shapes & Colors
       return { backgroundColor: "#ec4899" }; // pink-500
     case 5: // Music & Rhythm
       return { backgroundColor: "#f97316" }; // orange-500
-    // case 6 ("Our Emotions") intentionally omitted from UI
     default:
+      // If this is "Our Emotions" (even from backend), give it a nice color
+      if (title === "our emotions") {
+        return { backgroundColor: "#14b8a6" }; // teal-500
+      }
       return { backgroundColor: "#4f46e5" }; // indigo-600 fallback
   }
 };
@@ -73,8 +78,16 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<LessonLike | null>(null);
 
-  // 🔹 Central helper: lesson ID -> Page
+  // 🔹 Central helper: lesson -> Page
   const openContentPageForLesson = (lesson: LessonLike): boolean => {
+    const title = (lesson.title || "").toLowerCase();
+
+    // Special case: Our Emotions (whether from fixtures or admin-created)
+    if (title === "our emotions" || Number(lesson.id) === 6) {
+      onNavigate("lesson-our-emotions");
+      return true;
+    }
+
     switch (lesson.id) {
       case 1:
         onNavigate("lesson-numbers");
@@ -91,40 +104,24 @@ export function Lessons({ onNavigate }: LessonsProps) {
       case 5:
         onNavigate("lesson-music-rhythm");
         return true;
-      case 6:
-        onNavigate("lesson-our-emotions");
-        return true;
       default:
         return false; // no dedicated page
     }
   };
 
-  // ---------- pick source lessons (backend, WITHOUT "Our Emotions") ----------
+  // ---------- pick source lessons (backend OR fixtures) ----------
   const baseLessons: LessonLike[] = useMemo(() => {
     const backendLessons = Array.isArray(serverLessons)
       ? (serverLessons as LessonLike[])
       : [];
 
-    // Helper to strip "Our Emotions" (id=6 or title match)
-    const stripOurEmotions = (lessons: LessonLike[]) =>
-      lessons.filter(
-        (l) =>
-          Number(l.id) !== 6 &&
-          (l.title ?? "").toLowerCase() !== "our emotions"
-      );
-
     if (!backendLessons.length) {
-      // no data from server -> use fixtures only, but exclude Our Emotions
-      return stripOurEmotions(lessonsData as LessonLike[]);
+      // no data from server -> use fixtures
+      return lessonsData as LessonLike[];
     }
 
-    // Start from backend lessons and remove Our Emotions
-    let merged = stripOurEmotions(backendLessons);
-
-    // NOTE: Previously we forced "Our Emotions" to be present even if not in DB.
-    // That logic has been removed so it will no longer appear.
-
-    return merged;
+    // use backend lessons, styling/template will come from lessonsData if titles/ids match
+    return backendLessons;
   }, [serverLessons]);
 
   // ---------- merge progress + template styling (icons/colors/rating) ----------
