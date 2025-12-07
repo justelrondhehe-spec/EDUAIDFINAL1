@@ -6,22 +6,14 @@ import User from "../models/User.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_key";
 
-// helper like in getMe
-const getUserIdFromReq = (req) =>
-  req.user && (req.user._id || req.user.id || req.user.userId);
-
 /**
- * POST /auth/2fa/setup
+ * POST /api/auth/2fa/setup
  * Requires: protect middleware (user must be logged in)
  * Generates a secret + QR code for Google Authenticator.
  */
 export const startTwoFactorSetup = async (req, res) => {
   try {
-    const userId = getUserIdFromReq(req);
-    if (!userId) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-
+    const userId = req.user.id; // from protect middleware
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -29,10 +21,9 @@ export const startTwoFactorSetup = async (req, res) => {
       name: `EduAid (${user.email})`,
     });
 
+    // Save secret, keep 2FA disabled until verification
     user.twoFactorSecret = secret.base32;
-    // mark as disabled until verified
-    if (!user.privacySettings) user.privacySettings = {};
-    user.privacySettings.twoFactorEnabled = false;
+    user.twoFactorEnabled = false;
     await user.save();
 
     const otpauthUrl = secret.otpauth_url;
@@ -41,7 +32,7 @@ export const startTwoFactorSetup = async (req, res) => {
     res.json({
       otpauthUrl,
       qrCodeDataUrl,
-      secret: secret.base32,
+      secret: secret.base32, // optional backup
     });
   } catch (err) {
     console.error("startTwoFactorSetup error", err);
@@ -50,18 +41,14 @@ export const startTwoFactorSetup = async (req, res) => {
 };
 
 /**
- * POST /auth/2fa/verify-setup
+ * POST /api/auth/2fa/verify-setup
  * Body: { token: "123456" }
  * Confirms the code from Google Authenticator and enables 2FA.
  */
 export const verifyTwoFactorSetup = async (req, res) => {
   try {
-    const userId = getUserIdFromReq(req);
+    const userId = req.user.id;
     const { token } = req.body;
-
-    if (!userId) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
 
     const user = await User.findById(userId);
     if (!user || !user.twoFactorSecret) {
@@ -79,8 +66,7 @@ export const verifyTwoFactorSetup = async (req, res) => {
       return res.status(400).json({ message: "Invalid 2FA code" });
     }
 
-    if (!user.privacySettings) user.privacySettings = {};
-    user.privacySettings.twoFactorEnabled = true;
+    user.twoFactorEnabled = true;
     await user.save();
 
     res.json({ success: true, message: "Two-factor authentication enabled" });
@@ -91,7 +77,7 @@ export const verifyTwoFactorSetup = async (req, res) => {
 };
 
 /**
- * POST /auth/2fa/login
+ * POST /api/auth/2fa/login
  * Body: { token: "123456", tempToken: "..." }
  * Used after password is correct but 2FA is required.
  */
@@ -117,11 +103,7 @@ export const verifyTwoFactorLogin = async (req, res) => {
     }
 
     const user = await User.findById(payload.userId);
-    if (
-      !user ||
-      !user.twoFactorSecret ||
-      !user.privacySettings?.twoFactorEnabled
-    ) {
+    if (!user || !user.twoFactorSecret || !user.twoFactorEnabled) {
       return res
         .status(400)
         .json({ message: "2FA not enabled for this user" });
@@ -152,7 +134,7 @@ export const verifyTwoFactorLogin = async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
-        privacySettings: user.privacySettings,
+        twoFactorEnabled: user.twoFactorEnabled,
       },
     });
   } catch (err) {

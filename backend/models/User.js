@@ -1,4 +1,3 @@
-// backend/models/User.js
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
@@ -80,17 +79,9 @@ const userSchema = new mongoose.Schema(
       showTranslatedInstructions: { type: Boolean, default: true },
     },
 
-    // 🔐 Privacy & security
-    privacySettings: {
-      allowProfileSuggestions: { type: Boolean, default: false },
-      showAchievementsOnProfile: { type: Boolean, default: true },
-      shareAnonymousUsageData: { type: Boolean, default: true },
-      loginAlerts: { type: Boolean, default: true },
-      twoFactorEnabled: { type: Boolean, default: false }, // now actually used
-    },
-
-    // 🔐 2FA secret for Google Authenticator
-    twoFactorSecret: { type: String, default: null },
+    // 🔐 Two-factor authentication (TOTP – Google Authenticator)
+    twoFactorSecret: { type: String },                  // base32 secret
+    twoFactorEnabled: { type: Boolean, default: false } // true after verified
   },
   { timestamps: true }
 );

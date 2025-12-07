@@ -1,4 +1,3 @@
-// backend/routes/authRoutes.js
 import express from "express";
 import { login, register, getMe } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";

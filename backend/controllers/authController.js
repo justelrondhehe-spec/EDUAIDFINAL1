@@ -1,4 +1,3 @@
-// backend/controllers/authController.js
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import bcrypt from "bcryptjs";
@@ -15,10 +14,7 @@ const sanitizeUser = (userDoc) => {
 
 export const getMe = async (req, res, next) => {
   try {
-    // protect middleware should have attached req.user
-    const userId =
-      req.user &&
-      (req.user._id || req.user.id || req.user.userId);
+    const userId = req.user && (req.user._id || req.user.id || req.user.userId);
 
     if (!userId) {
       return res
@@ -53,7 +49,7 @@ export const register = async (req, res, next) => {
 
     const user = await User.create({ name, email, password: hashed });
 
-    // Create "new enrollment" notification (non-blocking)
+    // create enrollment notification (best-effort)
     try {
       await Notification.create({
         type: "new_enrollment",
@@ -94,31 +90,22 @@ export const login = async (req, res, next) => {
         .status(400)
         .json({ success: false, message: "Invalid email or password" });
 
-    // 🔐 Check if 2FA is enabled for this user
-    const twoFactorEnabled =
-      user.privacySettings?.twoFactorEnabled && user.twoFactorSecret;
-
-    if (twoFactorEnabled) {
-      // 1️⃣ Do NOT issue the full token yet.
-      // Create a short-lived temp token just for the 2FA step
+    // 🔐 If 2FA is enabled, send a tempToken and DO NOT log in fully yet
+    if (user.twoFactorSecret && user.twoFactorEnabled) {
       const tempToken = jwt.sign(
-        {
-          userId: user._id,
-          stage: "2fa",
-        },
+        { userId: user._id, stage: "2fa" },
         JWT_SECRET,
-        { expiresIn: "5m" } // 5 minutes
+        { expiresIn: "10m" }
       );
 
       return res.json({
         success: true,
         require2fa: true,
         tempToken,
-        message: "2FA required",
       });
     }
 
-    // ✅ If 2FA is NOT enabled, normal login
+    // ✅ Normal login (no 2FA)
     const token = generateToken(user);
 
     return res.json({

@@ -1,38 +1,31 @@
-// frontend/src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import client from "../api/client";
-import { auth } from "../api/api"; // expects api.ts to export auth object
+import { auth } from "../api/api";
 
 export const AuthContext = createContext<any>(null);
 
-// --- small helper to check if an id looks like a Mongo ObjectId ---
+// helper to check if an id looks like a Mongo ObjectId
 const isValidObjectIdLike = (id: any) =>
   typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
 
-// --- normalize user so we always have user._id and user.id ---
+// normalize user so we always have user._id and user.id
 const normalizeUser = (u: any | null) => {
   if (!u) return null;
 
   const rawId = u._id ?? u.id ?? u.userId;
-
-  // if id is missing or clearly bogus (like "<id>"), treat as no user
-  if (!isValidObjectIdLike(rawId)) {
-    return null;
-  }
+  if (!isValidObjectIdLike(rawId)) return null;
 
   const id = String(rawId);
   return { ...u, _id: id, id };
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // --- initial user from localStorage, but sanitized ---
   const [user, setUser] = useState<any>(() => {
     try {
       const raw = localStorage.getItem("user");
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      const normalized = normalizeUser(parsed);
-      return normalized;
+      return normalizeUser(parsed);
     } catch {
       return null;
     }
@@ -71,7 +64,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // if we already have a valid user in state, we can finish quickly
     if (!token) {
       setLoading(false);
       return;
@@ -79,7 +71,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-    // If your backend has /auth/me, this will fetch the current user
     if (auth.me) {
       auth
         .me()
@@ -88,7 +79,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const normalized = normalizeUser(u);
 
           if (!normalized) {
-            // token no longer valid or user malformed; log out
             logout();
             return;
           }
@@ -119,25 +109,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   /**
    * Login now supports 2FA:
    * - If backend returns { require2fa: true, tempToken }, we DO NOT log the user in yet.
-   *   We just return { require2fa: true, tempToken }.
+   *   We just return that object to the caller.
    * - Otherwise, we do the normal login flow.
    */
   const login = async (email: string, password: string) => {
     const res = await auth.login(email, password);
     const data = res.data;
 
-    // 🔐 2FA required branch
     if (data.require2fa) {
-      // Do NOT set token/user yet
       return {
         require2fa: true,
         tempToken: data.tempToken,
       };
     }
 
-    // ✅ Normal login (no 2FA)
     const t = data.token;
-    const u = data.user ?? data; // some backends just return the user
+    const u = data.user ?? data;
 
     if (t) {
       try {
@@ -148,7 +135,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const normalized = normalizeUser(u);
     if (!normalized) {
-      // something is wrong with the backend response
       console.warn("Auth login: could not normalize user", u);
       return { require2fa: false, user: null };
     }
@@ -158,7 +144,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch {}
     setUser(normalized);
 
-    // broadcast auth state change
     window.dispatchEvent(
       new CustomEvent("auth:changed", { detail: { user: normalized } })
     );
@@ -168,8 +153,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   /**
    * Called AFTER the user enters the 6-digit code from Google Authenticator.
-   * This hits the backend 2FA verify endpoint and then performs
-   * the same final login steps (store token + user).
    */
   const verifyTwoFactorLogin = async (
     code: string,
@@ -230,14 +213,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch {}
     setUser(normalized);
 
-    // mark that the user just registered so Dashboard can show the one-time welcome
     try {
       localStorage.setItem("justRegistered", "true");
     } catch (err) {
       console.warn("Could not set justRegistered flag:", err);
     }
 
-    // broadcast auth state change
     window.dispatchEvent(
       new CustomEvent("auth:changed", { detail: { user: normalized } })
     );
@@ -245,18 +226,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return normalized;
   };
 
-  // alias for compatibility if components call signup(...)
   const signup = register;
 
-  // 🔹 updateUser helper used by ProfileSettings and others
   const updateUser = (updated: any) => {
     if (!updated) {
-      // treat as logout if called with null
       logout();
       return;
     }
 
-    // ensure we keep the current id if backend doesn't return it
     const withId = {
       ...(user || {}),
       ...updated,
@@ -290,7 +267,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         loading,
         isAuthenticated,
         login,
-        verifyTwoFactorLogin, // 👈 expose new helper
+        verifyTwoFactorLogin,
         register,
         signup,
         logout,
@@ -302,13 +279,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-/**
- * Named export so files that do:
- *   import { useAuth } from '../contexts/AuthContext';
- * keep working.
- *
- * Also keeps the separate hook at src/hooks/useAuth.ts intact.
- */
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) {

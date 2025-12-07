@@ -1,6 +1,13 @@
-// frontend/src/components/LoginPage.tsx
 import { useState } from "react";
-import { BookOpen, Mail, Lock, ArrowLeft, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import {
+  BookOpen,
+  Mail,
+  Lock,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -24,12 +31,11 @@ export function LoginPage({
   const [error, setError] = useState("");
   const [isAdminLogin, setIsAdminLogin] = useState(false);
 
-  // 🔐 2FA state
+  // 2FA state
   const [isTwoFactorStep, setIsTwoFactorStep] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
-  const [twoFactorTempToken, setTwoFactorTempToken] = useState<string | null>(
-    null
-  );
+  const [twoFactorTempToken, setTwoFactorTempToken] =
+    useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,21 +44,19 @@ export function LoginPage({
 
     try {
       if (!isTwoFactorStep) {
-        // 1️⃣ Normal email + password login
+        // Step 1 – email + password
         const result = await login(email, password);
 
         if (result?.require2fa) {
-          // Move to 2FA step
           setIsTwoFactorStep(true);
           setTwoFactorTempToken(result.tempToken);
           setError("");
           return;
         }
 
-        // Normal login success: AuthContext already stored user + token
-        // Parent app will typically navigate to dashboard automatically.
+        // if no 2FA required, AuthContext already set user + token
       } else {
-        // 2️⃣ 2FA verification step
+        // Step 2 – 2FA verification
         if (!twoFactorTempToken) {
           setError("Missing temporary token. Please log in again.");
           setIsTwoFactorStep(false);
@@ -65,8 +69,7 @@ export function LoginPage({
         }
 
         await verifyTwoFactorLogin(twoFactorCode.trim(), twoFactorTempToken);
-        // On success, AuthContext stores user + token
-        // App will behave as logged-in.
+        // on success, AuthContext sets user+token
       }
     } catch (err: any) {
       const msg =
@@ -144,7 +147,7 @@ export function LoginPage({
           </div>
         </div>
 
-        {/* Right Side - Login Form */}
+        {/* Right Side - Login / 2FA Form */}
         <div className="w-full max-w-md mx-auto">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-8">
             <button
@@ -302,13 +305,12 @@ export function LoginPage({
                     required
                   />
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Open your Google Authenticator (or compatible app) and
-                    enter the code shown for <strong>EduAid</strong>.
+                    Open your Google Authenticator (or compatible app) and enter
+                    the code shown for <strong>EduAid</strong>.
                   </p>
                   <button
                     type="button"
                     onClick={() => {
-                      // Allow user to go back to normal login
                       setIsTwoFactorStep(false);
                       setTwoFactorCode("");
                       setTwoFactorTempToken(null);
@@ -316,7 +318,7 @@ export function LoginPage({
                     }}
                     className="mt-3 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                   >
-                    ← Back to email & password
+                    ← Back to email &amp; password
                   </button>
                 </div>
               )}
@@ -339,7 +341,7 @@ export function LoginPage({
             {!isTwoFactorStep && (
               <div className="mt-6 text-center">
                 <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Don't have an account?{" "}
+                  Don&apos;t have an account?{" "}
                   <button
                     onClick={onNavigateToSignup}
                     className="text-blue-600 hover:text-blue-700"
