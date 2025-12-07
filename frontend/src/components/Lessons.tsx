@@ -82,7 +82,7 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const openContentPageForLesson = (lesson: LessonLike): boolean => {
     const title = (lesson.title || "").toLowerCase();
 
-    // 👉 SPECIAL CASE: any lesson whose title contains "our emotions"
+    // SPECIAL CASE: any lesson whose title contains "our emotions"
     if (title.includes("our emotions") || Number(lesson.id) === 6) {
       onNavigate("lesson-our-emotions");
       return true;
@@ -127,6 +127,8 @@ export function Lessons({ onNavigate }: LessonsProps) {
   // ---------- merge progress + template styling (icons/colors/rating) ----------
   const lessonsWithStatus = useMemo<LessonLike[]>(() => {
     return baseLessons.map((raw) => {
+      const titleLower = (raw.title ?? "").toLowerCase();
+
       // Try to find a "template" from fixtures by id or title
       const template = lessonsData.find(
         (t) =>
@@ -134,9 +136,15 @@ export function Lessons({ onNavigate }: LessonsProps) {
           (raw.title && t.title === raw.title)
       );
 
-      const lp =
+      // 1) normal keys
+      let lp =
         lessonProgress[raw.id as any] ||
         (raw._id && lessonProgress[String(raw._id)]);
+
+      // 2) SPECIAL CASE: Our Emotions virtual lesson uses id 6 in progress
+      if (!lp && titleLower.includes("our emotions")) {
+        lp = lessonProgress[6] ?? lessonProgress["6"];
+      }
 
       let status: Lesson["status"] = "not-started";
       let progressPercent = 0;
