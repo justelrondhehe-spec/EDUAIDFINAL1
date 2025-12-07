@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { useAccessibility } from "../../contexts/AccessibilityContext";
+import { TwoFactorSetup } from "./TwoFactorSetup"; // 👈 NEW
 
 interface AccessibilitySettingsProps {
   onBack: () => void;
@@ -50,7 +51,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
       </div>
 
       <div className="space-y-6">
-
         {/* -------------------- VISUAL SETTINGS -------------------- */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -58,7 +58,9 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               <Eye className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-slate-800 dark:text-slate-100">Visual Settings</h3>
+              <h3 className="text-slate-800 dark:text-slate-100">
+                Visual Settings
+              </h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm">
                 Adjust display preferences
               </p>
@@ -66,7 +68,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </div>
 
           <div className="space-y-6">
-
             {/* High Contrast */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
@@ -151,7 +152,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
                 </SelectContent>
               </Select>
             </div>
-
           </div>
         </div>
 
@@ -162,7 +162,9 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
               <Volume2 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-slate-800 dark:text-slate-100">Audio Settings</h3>
+              <h3 className="text-slate-800 dark:text-slate-100">
+                Audio Settings
+              </h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm">
                 Configure audio features
               </p>
@@ -170,7 +172,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           </div>
 
           <div className="space-y-6">
-
             {/* Screen Reader Hints */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
@@ -215,7 +216,6 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
                 step={1}
               />
             </div>
-
           </div>
         </div>
 
@@ -224,15 +224,17 @@ export function AccessibilitySettings({ onBack }: AccessibilitySettingsProps) {
           <Button variant="outline" onClick={onBack}>
             Cancel
           </Button>
-
           <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
             <Save className="w-4 h-4 mr-2" />
             Save Changes
           </Button>
         </div>
 
+        {/* -------------------- TWO-FACTOR AUTH -------------------- */}
+        <div className="mt-4">
+          <TwoFactorSetup />
+        </div>
       </div>
     </div>
   );
 }
-
