@@ -1,3 +1,4 @@
+Back to this, what do i remove so that i can take a vide myself on what to add when i want to add the our emotions lesson. I need to demonstrate it to my prof
 // frontend/src/components/Lessons.tsx
 import { Clock, Star, Lock, Check, Search, Filter, X, Play } from "lucide-react";
 import { Button } from "./ui/button";
@@ -36,11 +37,10 @@ const getLessonHeaderStyle = (lesson: LessonLike): CSSProperties => {
     case 5: // Music & Rhythm
       return { backgroundColor: "#f97316" }; // orange-500
     default:
-      
-    if (title.includes("our emotions")) {
+      // Any lesson whose title contains "our emotions"
+      if (title.includes("our emotions")) {
         return { backgroundColor: "#14b8a6" }; // teal-500
       }
-
       return { backgroundColor: "#4f46e5" }; // indigo-600 fallback
   }
 };
@@ -79,8 +79,9 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<LessonLike | null>(null);
 
-const openContentPageForLesson = (lesson: LessonLike): boolean => {
-   const title = (lesson.title || "").toLowerCase();
+  // 🔹 Central helper: lesson -> Page
+  const openContentPageForLesson = (lesson: LessonLike): boolean => {
+    const title = (lesson.title || "").toLowerCase();
 
     // SPECIAL CASE: any lesson whose title contains "our emotions"
     if (title.includes("our emotions") || Number(lesson.id) === 6) {
@@ -119,7 +120,6 @@ const openContentPageForLesson = (lesson: LessonLike): boolean => {
       // no data from server -> use fixtures
       return lessonsData as LessonLike[];
     }
-    const titleLower = (raw.title ?? "").toLowerCase();
 
     // use backend lessons, styling/template will come from lessonsData if titles/ids match
     return backendLessons;
@@ -128,7 +128,7 @@ const openContentPageForLesson = (lesson: LessonLike): boolean => {
   // ---------- merge progress + template styling (icons/colors/rating) ----------
   const lessonsWithStatus = useMemo<LessonLike[]>(() => {
     return baseLessons.map((raw) => {
-      
+      const titleLower = (raw.title ?? "").toLowerCase();
 
       // Try to find a "template" from fixtures by id or title
       const template = lessonsData.find(
@@ -146,7 +146,6 @@ const openContentPageForLesson = (lesson: LessonLike): boolean => {
       if (!lp && titleLower.includes("our emotions")) {
         lp = lessonProgress[6] ?? lessonProgress["6"];
       }
-
 
       let status: Lesson["status"] = "not-started";
       let progressPercent = 0;
