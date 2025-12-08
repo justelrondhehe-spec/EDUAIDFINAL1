@@ -36,10 +36,9 @@ const getLessonHeaderStyle = (lesson: LessonLike): CSSProperties => {
     case 5: // Music & Rhythm
       return { backgroundColor: "#f97316" }; // orange-500
     default:
-      // Any lesson whose title contains "our emotions"
-      if (title.includes("our emotions")) {
-        return { backgroundColor: "#14b8a6" }; // teal-500
-      }
+      
+
+
       return { backgroundColor: "#4f46e5" }; // indigo-600 fallback
   }
 };
@@ -78,15 +77,7 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<LessonLike | null>(null);
 
-  // 🔹 Central helper: lesson -> Page
-  const openContentPageForLesson = (lesson: LessonLike): boolean => {
-    const title = (lesson.title || "").toLowerCase();
 
-    // SPECIAL CASE: any lesson whose title contains "our emotions"
-    if (title.includes("our emotions") || Number(lesson.id) === 6) {
-      onNavigate("lesson-our-emotions");
-      return true;
-    }
 
     switch (lesson.id) {
       case 1:
