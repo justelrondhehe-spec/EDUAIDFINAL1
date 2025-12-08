@@ -1,4 +1,3 @@
-Back to this, what do i remove so that i can take a vide myself on what to add when i want to add the our emotions lesson. I need to demonstrate it to my prof
 // frontend/src/components/Lessons.tsx
 import { Clock, Star, Lock, Check, Search, Filter, X, Play } from "lucide-react";
 import { Button } from "./ui/button";
