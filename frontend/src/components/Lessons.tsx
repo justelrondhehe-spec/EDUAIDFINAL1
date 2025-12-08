@@ -36,10 +36,11 @@ const getLessonHeaderStyle = (lesson: LessonLike): CSSProperties => {
     case 5: // Music & Rhythm
       return { backgroundColor: "#f97316" }; // orange-500
     default:
+      // ⬇️ Example for later (currently disabled):
       // Any lesson whose title contains "our emotions"
-      if (title.includes("our emotions")) {
-        return { backgroundColor: "#14b8a6" }; // teal-500
-      }
+      // if (title.includes("our emotions")) {
+      //   return { backgroundColor: "#14b8a6" }; // teal-500
+      // }
       return { backgroundColor: "#4f46e5" }; // indigo-600 fallback
   }
 };
@@ -82,11 +83,12 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const openContentPageForLesson = (lesson: LessonLike): boolean => {
     const title = (lesson.title || "").toLowerCase();
 
+    // ⬇️ Example for later (currently disabled):
     // SPECIAL CASE: any lesson whose title contains "our emotions"
-    if (title.includes("our emotions") || Number(lesson.id) === 6) {
-      onNavigate("lesson-our-emotions");
-      return true;
-    }
+    // if (title.includes("our emotions") || Number(lesson.id) === 6) {
+    //   onNavigate("lesson-our-emotions");
+    //   return true;
+    // }
 
     switch (lesson.id) {
       case 1:
@@ -141,10 +143,11 @@ export function Lessons({ onNavigate }: LessonsProps) {
         lessonProgress[raw.id as any] ||
         (raw._id && lessonProgress[String(raw._id)]);
 
+      // ⬇️ Example for later (currently disabled):
       // 2) SPECIAL CASE: Our Emotions virtual lesson uses id 6 in progress
-      if (!lp && titleLower.includes("our emotions")) {
-        lp = lessonProgress[6] ?? lessonProgress["6"];
-      }
+      // if (!lp && titleLower.includes("our emotions")) {
+      //   lp = lessonProgress[6] ?? lessonProgress["6"];
+      // }
 
       let status: Lesson["status"] = "not-started";
       let progressPercent = 0;
