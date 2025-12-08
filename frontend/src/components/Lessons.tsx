@@ -77,6 +77,7 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<LessonLike | null>(null);
 
+const openContentPageForLesson = (lesson: LessonLike): boolean => {
 
 
     switch (lesson.id) {
