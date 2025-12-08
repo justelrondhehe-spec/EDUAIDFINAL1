@@ -37,7 +37,9 @@ const getLessonHeaderStyle = (lesson: LessonLike): CSSProperties => {
       return { backgroundColor: "#f97316" }; // orange-500
     default:
       
-
+    if (title.includes("our emotions")) {
+        return { backgroundColor: "#14b8a6" }; // teal-500
+      }
 
       return { backgroundColor: "#4f46e5" }; // indigo-600 fallback
   }
@@ -78,7 +80,13 @@ export function Lessons({ onNavigate }: LessonsProps) {
   const [selectedLesson, setSelectedLesson] = useState<LessonLike | null>(null);
 
 const openContentPageForLesson = (lesson: LessonLike): boolean => {
+   const title = (lesson.title || "").toLowerCase();
 
+    // SPECIAL CASE: any lesson whose title contains "our emotions"
+    if (title.includes("our emotions") || Number(lesson.id) === 6) {
+      onNavigate("lesson-our-emotions");
+      return true;
+    }
 
     switch (lesson.id) {
       case 1:
@@ -111,6 +119,7 @@ const openContentPageForLesson = (lesson: LessonLike): boolean => {
       // no data from server -> use fixtures
       return lessonsData as LessonLike[];
     }
+    const titleLower = (raw.title ?? "").toLowerCase();
 
     // use backend lessons, styling/template will come from lessonsData if titles/ids match
     return backendLessons;
@@ -134,7 +143,9 @@ const openContentPageForLesson = (lesson: LessonLike): boolean => {
         (raw._id && lessonProgress[String(raw._id)]);
 
       // 2) SPECIAL CASE: Our Emotions virtual lesson uses id 6 in progress
-      
+      if (!lp && titleLower.includes("our emotions")) {
+        lp = lessonProgress[6] ?? lessonProgress["6"];
+      }
 
 
       let status: Lesson["status"] = "not-started";
