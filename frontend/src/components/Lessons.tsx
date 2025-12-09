@@ -36,8 +36,7 @@ const getLessonHeaderStyle = (lesson: LessonLike): CSSProperties => {
     case 5: // Music & Rhythm
       return { backgroundColor: "#f97316" }; // orange-500
     default:
-      // ⬇️ Example for later (currently disabled):
-      Any lesson whose title contains "our emotions"
+      //Any lesson whose title contains "our emotions"
       if (title.includes("our emotions")) {
       return { backgroundColor: "#14b8a6" }; // teal-500
       }
